@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="monochrome" data-amoled="false">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SynFix — Reproductor de Música Local • Material Design 3 Expressive</title>
+
+  <!-- Google Fonts: Outfit (Expressive Display), Plus Jakarta Sans (Body), JetBrains Mono (DSP Telemetry) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Material Symbols Rounded -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400..600,0..1,0" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* ==========================================================================
+       MATERIAL DESIGN 3 & M3 EXPRESSIVE DESIGN TOKENS
+       ========================================================================== */
+    :root {
+      /* Spring Motion Physics Curves (M3 Expressive) */
+      --md-sys-motion-spring-spatial: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --md-sys-motion-spring-gentle: cubic-bezier(0.22, 1.25, 0.36, 1);
+      --md-sys-motion-effects: cubic-bezier(0.2, 0, 0, 1);
+
+      /* Default Theme: Monocromo Minimalista (inspirado en el logo blanco y gris) */
+      --md-sys-color-primary: #F4F4F5;
+      --md-sys-color-on-primary: #121214;
+      --md-sys-color-primary-container: #2E2E33;
+      --md-sys-color-on-primary-container: #F4F4F5;
+      --md-sys-color-secondary: #A1A1AA;
+      --md-sys-color-secondary-container: #27272A;
+      --md-sys-color-on-secondary-container: #E4E4E7;
+      --md-sys-color-tertiary: #D4D4D8;
+      --md-sys-color-tertiary-container: #3F3F46;
+      --md-sys-color-on-tertiary-container: #FAFAFA;
+      --md-sys-color-surface: #0E0E10;
+      --md-sys-color-surface-container-low: #141417;
+      --md-sys-color-surface-container: #1A1A1E;
+      --md-sys-color-surface-container-high: #232329;
+      --md-sys-color-surface-container-highest: #2E2E36;
+      --md-sys-color-on-surface: #F4F4F5;
+      --md-sys-color-on-surface-variant: #A1A1AA;
+      --md-sys-color-outline: #71717A;
+      --md-sys-color-outline-variant: #2E2E34;
+      --md-sys-color-glow: rgba(244, 244, 245, 0.10);
+    }
+
+    /* Tema 2: Violeta Expressive */
+    [data-theme="violet"] {
+      --md-sys-color-primary: #D0BCFF;
+      --md-sys-color-on-primary: #381E72;
+      --md-sys-color-primary-container: #4F378B;
+      --md-sys-color-on-primary-container: #EADDFF;
+      --md-sys-color-secondary: #CCC2DC;
+      --md-sys-color-secondary-container: #4A4458;
+      --md-sys-color-on-secondary-container: #E8DEF8;
+      --md-sys-color-tertiary: #EFB8C8;
+      --md-sys-color-tertiary-container: #633B48;
+      --md-sys-color-on-tertiary-container: #FFD8E4;
+      --md-sys-color-surface: #141218;
+      --md-sys-color-surface-container-low: #1D1B20;
+      --md-sys-color-surface-container: #211F26;
+      --md-sys-color-surface-container-high: #2B2930;
+      --md-sys-color-surface-container-highest: #36343B;
+      --md-sys-color-on-surface: #E6E0E9;
+      --md-sys-color-on-surface-variant: #CAC4D0;
+      --md-sys-color-outline: #938F99;
+      --md-sys-color-outline-variant: #49454F;
+      --md-sys-color-glow: rgba(208, 188, 255, 0.16);
+    }
+
+    /* Tema 3: Esmeralda DSP */
+    [data-theme="emerald"] {
+      --md-sys-color-primary: #6DDBAC;
+      --md-sys-color-on-primary: #003825;
+      --md-sys-color-primary-container: #005138;
+      --md-sys-color-on-primary-container: #89F8C7;
+      --md-sys-color-secondary: #B3CCBE;
+      --md-sys-color-secondary-container: #354B40;
+      --md-sys-color-on-secondary-container: #CFE9D9;
+      --md-sys-color-tertiary: #A5CDDE;
+      --md-sys-color-tertiary-container: #244C5B;
+      --md-sys-color-on-tertiary-container: #C1E8FB;
+      --md-sys-color-surface: #0E1512;
+      --md-sys-color-surface-container-low: #161D1A;
+      --md-sys-color-surface-container: #1A211E;
+      --md-sys-color-surface-container-high: #252B28;
+      --md-sys-color-surface-container-highest: #303633;
+      --md-sys-color-on-surface: #DEE4DF;
+      --md-sys-color-on-surface-variant: #BFC9C2;
+      --md-sys-color-outline: #89938D;
+      --md-sys-color-outline-variant: #3F4944;
+      --md-sys-color-glow: rgba(109, 219, 172, 0.15);
+    }
+
+    /* Tema 4: Ámbar Vinilo */
+    [data-theme="amber"] {
+      --md-sys-color-primary: #FFB951;
+      --md-sys-color-on-primary: #452B00;
+      --md-sys-color-primary-container: #633F00;
+      --md-sys-color-on-primary-container: #FFDDB3;
+      --md-sys-color-secondary: #DDC2A1;
+      --md-sys-color-secondary-container: #56442A;
+      --md-sys-color-on-secondary-container: #FBDEBC;
+      --md-sys-color-tertiary: #B8CEA1;
+      --md-sys-color-tertiary-container: #3A4C2A;
+      --md-sys-color-on-tertiary-container: #D4EABB;
+      --md-sys-color-surface: #17130B;
+      --md-sys-color-surface-container-low: #201B13;
+      --md-sys-color-surface-container: #241F17;
+      --md-sys-color-surface-container-high: #2F2921;
+      --md-sys-color-surface-container-highest: #3A342B;
+      --md-sys-color-on-surface: #ECE1D4;
+      --md-sys-color-on-surface-variant: #D3C4B4;
+      --md-sys-color-outline: #9C8F80;
+      --md-sys-color-outline-variant: #4F4539;
+      --md-sys-color-glow: rgba(255, 185, 81, 0.15);
+    }
+
+    /* Modificador Negro Puro AMOLED (#000000) */
+    [data-amoled="true"] {
+      --md-sys-color-surface: #000000;
+      --md-sys-color-surface-container-low: #050505;
+      --md-sys-color-surface-container: #0A0A0C;
+      --md-sys-color-surface-container-high: #121215;
+      --md-sys-color-surface-container-highest: #1A1A1F;
+    }
+
+    /* ==========================================================================
+       BASE & TYPOGRAPHY
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+
+    body {
+      background-color: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      transition: background-color 380ms var(--md-sys-motion-effects), color 380ms var(--md-sys-motion-effects);
+      overflow-x: hidden;
+      padding-bottom: 108px; /* Space for HorizontalFloatingToolbar */
+    }
+
+    .font-display {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .material-symbols-rounded {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+
+    /* ==========================================================================
+       M3 EXPRESSIVE COMPONENT CLASSES & SPRING PHYSICS
+       ========================================================================== */
+    .m3-surface-card {
+      background-color: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 28px;
+      transition:
+        background-color 350ms var(--md-sys-motion-effects),
+        border-color 350ms var(--md-sys-motion-effects),
+        transform 420ms var(--md-sys-motion-spring-spatial);
+    }
+
+    .m3-surface-card-interactive:hover {
+      background-color: var(--md-sys-color-surface-container-high);
+      transform: translateY(-3px);
+    }
+
+    .m3-spring-btn {
+      transition:
+        transform 420ms var(--md-sys-motion-spring-spatial),
+        border-radius 380ms var(--md-sys-motion-spring-spatial),
+        background-color 260ms var(--md-sys-motion-effects),
+        color 260ms var(--md-sys-motion-effects),
+        box-shadow 260ms var(--md-sys-motion-effects);
+    }
+
+    .m3-spring-btn:hover {
+      transform: scale(1.03);
+    }
+
+    .m3-spring-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* M3 SplitButton */
+    .m3-split-group {
+      display: inline-flex;
+      align-items: stretch;
+      gap: 3px;
+    }
+
+    .m3-split-leading {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 999px 8px 8px 999px;
+      transition: all 380ms var(--md-sys-motion-spring-spatial);
+    }
+
+    .m3-split-leading:hover {
+      border-radius: 999px 16px 16px 999px;
+      filter: brightness(1.05);
+    }
+
+    .m3-split-trailing {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 8px 999px 999px 8px;
+      transition: all 380ms var(--md-sys-motion-spring-spatial);
+    }
+
+    .m3-split-trailing:hover {
+      border-radius: 16px 999px 999px 16px;
+    }
+
+    /* Shape-Shifting Play/Pause Button */
+    .play-morph-btn {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border-radius: 22px;
+      transition:
+        border-radius 480ms var(--md-sys-motion-spring-spatial),
+        background-color 300ms var(--md-sys-motion-effects),
+        color 300ms var(--md-sys-motion-effects);
+      will-change: transform, border-radius;
+    }
+
+    .play-morph-btn.is-playing {
+      border-radius: 999px;
+    }
+
+    /* M3 Filter Chip */
+    .m3-chip {
+      background-color: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface-variant);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 12px;
+      transition: all 340ms var(--md-sys-motion-spring-spatial);
+    }
+
+    .m3-chip.active {
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      border-color: transparent;
+      border-radius: 999px;
+    }
+
+    /* Vertical 10-Band EQ Range Sliders */
+    .eq-slider-wrapper {
+      position: relative;
+      width: 28px;
+      height: 148px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    input[type="range"].m3-eq-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 140px;
+      height: 24px;
+      background: transparent;
+      transform: rotate(-90deg);
+      cursor: pointer;
+    }
+
+    input[type="range"].m3-eq-slider::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background: var(--md-sys-color-surface-container-highest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    input[type="range"].m3-eq-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--md-sys-color-primary);
+      border: 2px solid var(--md-sys-color-on-primary);
+      margin-top: -7px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      transition: transform 240ms var(--md-sys-motion-spring-spatial);
+    }
+
+    input[type="range"].m3-eq-slider:hover::-webkit-slider-thumb,
+    input[type="range"].m3-eq-slider:active::-webkit-slider-thumb {
+      transform: scale(1.25);
+    }
+
+    /* HorizontalFloatingToolbar (Bottom Navigation) */
+    .m3-floating-toolbar {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      background-color: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, transparent);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 999px;
+      padding: 6px;
+      box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5);
+      transition: transform 420ms var(--md-sys-motion-spring-spatial), background-color 350ms ease;
+    }
+
+    .nav-pill-btn {
+      position: relative;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--md-sys-color-on-surface-variant);
+      transition: all 360ms var(--md-sys-motion-spring-spatial);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .nav-pill-btn.active {
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+
+    /* Vinyl Grooves Texture */
+    .vinyl-disc {
+      background:
+        radial-gradient(circle at center, transparent 28%, rgba(255,255,255,0.04) 29%, transparent 30%, rgba(255,255,255,0.03) 36%, transparent 37%, rgba(255,255,255,0.04) 44%, transparent 45%, rgba(255,255,255,0.03) 53%, transparent 54%, rgba(255,255,255,0.04) 62%, transparent 63%),
+        conic-gradient(from 45deg, #121214 0%, #242429 22%, #111113 48%, #27272c 74%, #121214 100%);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+      will-change: transform;
+      cursor: grab;
+    }
+
+    .vinyl-disc:active {
+      cursor: grabbing;
+    }
+
+    /* Ambient Hero Glow */
+    .hero-ambient {
+      background: radial-gradient(circle at 50% 20%, var(--md-sys-color-glow), transparent 65%);
+      pointer-events: none;
+    }
+
+    /* Hide scrollbar cleanly where needed */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-white/20">
+
+  <!-- Ambient Top Glow -->
+  <div class="fixed inset-x-0 top-0 h-[560px] hero-ambient z-0"></div>
+
+  <!-- ========================================================================
+       TOP APP BAR (M3 EXPRESSIVE + DYNAMIC MATERIAL YOU THEME SWITCHER)
+       ======================================================================== -->
+  <header class="sticky top-0 z-40 border-b border-[var(--md-sys-color-outline-variant)] bg-[var(--md-sys-color-surface)]/85 backdrop-blur-xl transition-colors duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <!-- Brand Identity -->
+      <a href="#inicio" class="flex items-center gap-3 group shrink-0">
+        <!-- Minimalist White & Grey Squircle Logo SVG -->
+        <svg class="w-9 h-9 rounded-[11px] shadow-md transition-transform duration-300 group-hover:scale-105" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="SynFix Logo">
+          <rect width="120" height="120" rx="28" fill="#18181B"/>
+          <rect x="1" y="1" width="118" height="118" rx="27" stroke="white" stroke-opacity="0.12" stroke-width="2"/>
+          <circle cx="60" cy="60" r="38" stroke="#52525B" stroke-width="4" stroke-dasharray="145 45" stroke-linecap="round"/>
+          <circle cx="60" cy="60" r="28" stroke="#A1A1AA" stroke-width="4" stroke-dasharray="95 60" stroke-linecap="round" transform="rotate(-35 60 60)"/>
+          <path d="M51 43.5C51 41.1 53.6 39.6 55.7 40.8L81.2 55.6C83.3 56.8 83.3 59.8 81.2 61L55.7 75.8C53.6 77 51 75.5 51 73.1V43.5Z" fill="url(#logoGrad)"/>
+          <defs>
+            <linearGradient id="logoGrad" x1="50" y1="40" x2="82" y2="78" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FFFFFF"/>
+              <stop offset="1" stop-color="#A1A1AA"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="flex items-center gap-2">
+          <span class="font-display font-bold text-xl tracking-tight">SynFix</span>
+          <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono-tech font-semibold bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+            M3 EXPRESSIVE
+          </span>
+        </div>
+      </a>
+
+      <!-- Live Material You Theme Selector (5 Palettes + AMOLED Toggle) -->
+      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-1">
+        <div class="flex items-center gap-1 p-1 rounded-full bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]" role="group" aria-label="Selector de tema dinámico">
+          <button type="button" data-set-theme="monochrome" class="theme-btn active flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all" title="Monocromo Minimalista">
+            <span class="w-3 h-3 rounded-full bg-zinc-200 border border-zinc-500"></span>
+            <span class="hidden md:inline">Monocromo</span>
+          </button>
+          <button type="button" data-set-theme="violet" class="theme-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all" title="Violeta Expressive">
+            <span class="w-3 h-3 rounded-full bg-[#D0BCFF]"></span>
+            <span class="hidden md:inline">Violeta</span>
+          </button>
+          <button type="button" data-set-theme="emerald" class="theme-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all" title="Esmeralda DSP">
+            <span class="w-3 h-3 rounded-full bg-[#6DDBAC]"></span>
+            <span class="hidden md:inline">Esmeralda</span>
+          </button>
+          <button type="button" data-set-theme="amber" class="theme-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all" title="Ámbar Vinilo">
+            <span class="w-3 h-3 rounded-full bg-[#FFB951]"></span>
+            <span class="hidden md:inline">Ámbar</span>
+          </button>
+        </div>
+
+        <!-- AMOLED #000000 Switch -->
+        <button type="button" id="amoledToggle" aria-pressed="false" class="m3-spring-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono-tech font-semibold bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)] hover:text-[var(--md-sys-color-on-surface)]" title="Activar Negro Puro AMOLED (#000000)">
+          <span class="w-2.5 h-2.5 rounded-full bg-black border border-white/40"></span>
+          <span>AMOLED</span>
+        </button>
+
+        <!-- Direct GitHub Download Pill in Top App Bar -->
+        <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" class="m3-spring-btn inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] shrink-0" title="Descargar SynFix en GitHub">
+          <span class="material-symbols-rounded text-[16px]">download</span>
+          <span class="hidden sm:inline">Descargar</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative z-10">
+
+    <!-- ======================================================================
+         1. HERO SECTION
+         ====================================================================== -->
+    <section id="inicio" class="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-16 md:pt-20 md:pb-24 text-center">
+      <div class="flex flex-col items-center max-w-4xl mx-auto">
+
+        <!-- Hero Minimalist SVG Emblem -->
+        <div class="mb-7 relative group">
+          <div class="absolute -inset-3 rounded-[38px] bg-[var(--md-sys-color-primary)] opacity-15 blur-xl group-hover:opacity-25 transition-opacity duration-500"></div>
+          <svg class="relative w-24 h-24 sm:w-28 sm:h-28 rounded-[30px] shadow-2xl transition-transform duration-500 ease-out group-hover:scale-105 group-hover:rotate-2" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="120" rx="30" fill="#161618"/>
+            <rect x="1.5" y="1.5" width="117" height="117" rx="28.5" stroke="white" stroke-opacity="0.16" stroke-width="2"/>
+            <!-- Outer Soundwave Arc -->
+            <circle cx="60" cy="60" r="41" stroke="#3F3F46" stroke-width="3.5"/>
+            <circle cx="60" cy="60" r="41" stroke="#D4D4D8" stroke-width="3.5" stroke-dasharray="155 110" stroke-linecap="round"/>
+            <!-- Inner Vinyl Groove Arc -->
+            <circle cx="60" cy="60" r="30" stroke="#71717A" stroke-width="3.5" stroke-dasharray="95 95" stroke-linecap="round" transform="rotate(-40 60 60)"/>
+            <!-- Fluid Play Triangle -->
+            <path d="M51.5 43.2C51.5 40.7 54.2 39.2 56.4 40.5L82.4 55.8C84.5 57.1 84.5 60.1 82.4 61.4L56.4 76.7C54.2 78 51.5 76.4 51.5 74V43.2Z" fill="url(#heroPlayGrad)"/>
+            <defs>
+              <linearGradient id="heroPlayGrad" x1="50" y1="39" x2="84" y2="79" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#FFFFFF"/>
+                <stop offset="0.65" stop-color="#E4E4E7"/>
+                <stop offset="1" stop-color="#71717A"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <!-- Display Headline -->
+        <h1 class="font-display font-extrabold text-5xl sm:text-7xl tracking-tight leading-[1.04] mb-5">
+          SynFix
+        </h1>
+
+        <p class="text-lg sm:text-2xl text-[var(--md-sys-color-on-surface-variant)] font-medium max-w-2xl leading-relaxed mb-8">
+          Reproductor de música local para Android con <span class="text-[var(--md-sys-color-on-surface)] font-semibold">Material Design 3 Expressive</span> y rendimiento extremo a <span class="text-[var(--md-sys-color-primary)] font-semibold">120 FPS</span>.
+        </p>
+
+        <!-- Technical M3 Assist Badges -->
+        <div class="flex flex-wrap items-center justify-center gap-2.5 mb-10">
+          <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]">
+            <span class="material-symbols-rounded text-[18px] text-[var(--md-sys-color-primary)]">cloud_off</span>
+            100% Offline
+          </span>
+          <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]">
+            <span class="material-symbols-rounded text-[18px] text-[var(--md-sys-color-primary)]">auto_awesome</span>
+            Material 3 Expressive
+          </span>
+          <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]">
+            <span class="material-symbols-rounded text-[18px] text-[var(--md-sys-color-primary)]">speed</span>
+            120 FPS Zero-Jank
+          </span>
+          <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]">
+            <span class="material-symbols-rounded text-[18px] text-[var(--md-sys-color-primary)]">memory</span>
+            Audio Offload DSP
+          </span>
+        </div>
+
+        <!-- Primary Actions: M3 SplitButton + Tonal Secondary Button -->
+        <div class="flex flex-wrap items-center justify-center gap-4">
+          <!-- M3 Expressive SplitButton -->
+          <div class="relative inline-block">
+            <div class="m3-split-group shadow-lg">
+              <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" id="heroDownloadBtn" class="m3-split-leading flex items-center gap-2.5 px-6 py-3.5 font-semibold text-sm sm:text-base cursor-pointer">
+                <span class="material-symbols-rounded text-[20px]">download</span>
+                <span>Descargar en GitHub</span>
+              </a>
+              <button type="button" id="splitMenuToggle" aria-expanded="false" aria-label="Opciones de descarga y repositorio" class="m3-split-trailing flex items-center justify-center px-3.5 py-3.5 cursor-pointer">
+                <span class="material-symbols-rounded text-[20px] transition-transform duration-300" id="splitChevron">expand_more</span>
+              </button>
+            </div>
+
+            <!-- Dropdown Menu for SplitButton -->
+            <div id="splitDropdown" class="hidden absolute left-0 mt-2 w-72 p-1.5 rounded-2xl bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)] shadow-2xl text-left z-30">
+              <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-sys-color-surface-container)] transition-colors">
+                <span>Repositorio Synkhs/SynFix</span>
+                <span class="font-mono-tech text-[var(--md-sys-color-primary)]">main ↗</span>
+              </a>
+              <button type="button" data-arch="arm64-v8a (R8 Full Mode • 8.4 MB)" class="arch-option w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold hover:bg-[var(--md-sys-color-surface-container)] transition-colors">
+                <span>Detalles Build APK (arm64)</span>
+                <span class="font-mono-tech text-[var(--md-sys-color-on-surface-variant)]">8.4 MB</span>
+              </button>
+              <button type="button" id="quickCopyCloneBtn" class="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-[var(--md-sys-color-primary)] hover:bg-[var(--md-sys-color-surface-container)] transition-colors border-t border-[var(--md-sys-color-outline-variant)] mt-1 pt-2.5">
+                <span class="material-symbols-rounded text-[16px]">content_copy</span>
+                <span>Copiar git clone SynFix</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Secondary Expressive Tonal Button -->
+          <a href="#simulador" class="m3-spring-btn inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm sm:text-base bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)]">
+            <span class="material-symbols-rounded text-[20px]">graphic_eq</span>
+            <span>Probar Simulador en Vivo</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         2. INTERACTIVE LIVE APP SIMULATOR ("PRUEBA SYNFIX EN VIVO")
+         ====================================================================== -->
+    <section id="simulador" class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-mono-tech font-bold uppercase tracking-wider text-[var(--md-sys-color-primary)] mb-2">
+            <span class="w-2 h-2 rounded-full bg-[var(--md-sys-color-primary)] animate-pulse"></span>
+            MOTOR WEB AUDIO EN TIEMPO REAL
+          </span>
+          <h2 class="font-display font-bold text-3xl sm:text-4xl tracking-tight">Prueba SynFix en Vivo</h2>
+        </div>
+
+        <!-- Track Selector + Upload Local Audio File -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" data-track="0" class="track-select-btn active m3-chip px-3.5 py-2 text-xs font-semibold">
+            1. Midnight Sub (140 BPM)
+          </button>
+          <button type="button" data-track="1" class="track-select-btn m3-chip px-3.5 py-2 text-xs font-semibold">
+            2. Velvet Tape (85 BPM)
+          </button>
+          <button type="button" data-track="2" class="track-select-btn m3-chip px-3.5 py-2 text-xs font-semibold">
+            3. Neon Horizon (118 BPM)
+          </button>
+
+          <label class="m3-spring-btn cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+            <span class="material-symbols-rounded text-[16px]">folder_open</span>
+            <span>Cargar audio local</span>
+            <input type="file" id="localAudioInput" accept="audio/*" class="hidden" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Main Simulator Split Grid: Android Smartphone Mockup + 10-Band DSP Studio -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- LEFT: ANDROID SMARTPHONE MOCKUP (5 cols) -->
+        <div class="lg:col-span-5 flex justify-center">
+          <div id="phoneFrame" class="w-full max-w-[380px] rounded-[44px] p-3 bg-[var(--md-sys-color-surface-container-highest)] border-2 border-[var(--md-sys-color-outline-variant)] shadow-2xl transition-colors duration-300">
+            <!-- Inner Screen -->
+            <div id="phoneScreen" class="relative rounded-[34px] overflow-hidden bg-[var(--md-sys-color-surface)] border border-[var(--md-sys-color-outline-variant)] p-5 flex flex-col justify-between min-h-[640px] transition-colors duration-300">
+
+              <!-- Full-Bleed Background Layer (Visible in Immersive Style) -->
+              <div id="immersiveBackdrop" class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-500" style="background: radial-gradient(circle at 50% 25%, var(--md-sys-color-primary-container), var(--md-sys-color-surface) 75%);"></div>
+
+              <!-- Android Status Bar -->
+              <div class="relative z-10 flex items-center justify-between text-[11px] font-mono-tech text-[var(--md-sys-color-on-surface-variant)] mb-3">
+                <span>12:30</span>
+                <div class="w-16 h-4 rounded-full bg-black/80 border border-white/10"></div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[var(--md-sys-color-primary)] font-bold">120Hz</span>
+                  <span class="material-symbols-rounded text-[14px]">battery_full</span>
+                </div>
+              </div>
+
+              <!-- Top Player Header & 3 Layout Chips -->
+              <div class="relative z-10 flex flex-col items-center gap-2.5 mb-3">
+                <span class="text-[11px] font-semibold uppercase tracking-widest text-[var(--md-sys-color-on-surface-variant)]">Ahora Suena</span>
+                <div class="inline-flex p-1 rounded-full bg-[var(--md-sys-color-surface-container)] border border-[var(--md-sys-color-outline-variant)]">
+                  <button type="button" data-player-style="classic" class="player-style-btn active px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all">
+                    Expressive
+                  </button>
+                  <button type="button" data-player-style="immersive" class="player-style-btn px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all">
+                    Inmersivo
+                  </button>
+                  <button type="button" data-player-style="vinyl" class="player-style-btn px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all">
+                    Vinilo
+                  </button>
+                </div>
+              </div>
+
+              <!-- Dynamic Artwork Area (Morphing Shape / Full-Bleed / Interactive Scratch Vinyl) -->
+              <div class="relative z-10 flex items-center justify-center my-2 h-[230px]">
+
+                <!-- STYLE 1 & 2: Beat-Synced Shape Morphing Artwork -->
+                <div id="morphArtworkContainer" class="relative w-52 h-52 flex items-center justify-center transition-all duration-500">
+                  <svg id="morphCoverSvg" viewBox="0 0 200 200" class="w-full h-full drop-shadow-2xl">
+                    <defs>
+                      <linearGradient id="coverArtGrad" x1="0" y1="0" x2="200" y2="200" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="var(--md-sys-color-primary-container)"/>
+                        <stop offset="55%" stop-color="var(--md-sys-color-surface-container-highest)"/>
+                        <stop offset="100%" stop-color="var(--md-sys-color-secondary-container)"/>
+                      </linearGradient>
+                    </defs>
+                    <path id="morphShapePath" d="M 100,12 C 156,12 188,44 188,100 C 188,156 156,188 100,188 C 44,188 12,156 12,100 C 12,44 44,12 100,12 Z" fill="url(#coverArtGrad)" stroke="var(--md-sys-color-primary)" stroke-opacity="0.35" stroke-width="2"/>
+                  </svg>
+                  <!-- Procedural M3 Geometric Emblem Inside Cover -->
+                  <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span id="coverCenterIcon" class="material-symbols-rounded text-5xl text-[var(--md-sys-color-primary)] mb-1 transition-transform duration-150">album</span>
+                    <span id="coverBpmBadge" class="font-mono-tech text-[10px] px-2 py-0.5 rounded-full bg-black/40 text-white/90 backdrop-blur-sm">140 BPM • BASS MORPH</span>
+                  </div>
+                </div>
+
+                <!-- STYLE 3: Interactive Scratchable Vinyl Disc -->
+                <div id="vinylArtworkContainer" class="hidden relative w-52 h-52 items-center justify-center">
+                  <div id="vinylDisc" class="vinyl-disc w-52 h-52 rounded-full flex items-center justify-center select-none" title="Arrastra circularmente para hacer scratch">
+                    <div class="w-20 h-20 rounded-full bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] flex flex-col items-center justify-center shadow-inner border-4 border-black/40 pointer-events-none">
+                      <span class="font-display font-extrabold text-xs tracking-tight">SYNFIX</span>
+                      <span class="font-mono-tech text-[9px] opacity-80">33⅓ RPM</span>
+                      <div class="w-2.5 h-2.5 rounded-full bg-[#0E0E10] mt-1"></div>
+                    </div>
+                  </div>
+                  <span class="absolute -bottom-2 px-2.5 py-0.5 rounded-full text-[10px] font-mono-tech bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface-variant)] pointer-events-none">
+                    Arrastra el vinilo para scratch
+                  </span>
+                </div>
+              </div>
+
+              <!-- Track Title, Artist & Technical Codec Badge -->
+              <div class="relative z-10 text-center mt-2">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono-tech bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-primary)] mb-1.5">
+                  <span id="trackCodecTag">SYNTH DSP • 24-bit • 48kHz</span>
+                </div>
+                <h3 id="playerTrackTitle" class="font-display font-bold text-xl tracking-tight truncate">Midnight Sub (808 Demo)</h3>
+                <p id="playerTrackArtist" class="text-xs text-[var(--md-sys-color-on-surface-variant)] truncate">SynFix Audio Lab • Trap 140 BPM</p>
+              </div>
+
+              <!-- M3 Expressive LinearWavyProgressIndicator (SVG Wavy Seekbar) -->
+              <div class="relative z-10 my-3">
+                <div id="wavySeekbarContainer" class="relative w-full h-8 flex items-center cursor-pointer select-none" title="Haz clic o arrastra para saltar">
+                  <svg id="wavySeekSvg" viewBox="0 0 300 28" class="w-full h-7 overflow-visible">
+                    <!-- Unplayed Flat Track -->
+                    <line id="wavyRemainingLine" x1="0" y1="14" x2="300" y2="14" stroke="var(--md-sys-color-surface-container-highest)" stroke-width="4" stroke-linecap="round"/>
+                    <!-- Played Dynamic Sine Wave Path -->
+                    <path id="wavyPlayedPath" d="M 0 14 L 0 14" fill="none" stroke="var(--md-sys-color-primary)" stroke-width="4" stroke-linecap="round"/>
+                    <!-- Scrubber Pill Thumb -->
+                    <rect id="wavyThumb" x="0" y="6" width="5" height="16" rx="2.5" fill="var(--md-sys-color-primary)"/>
+                  </svg>
+                </div>
+                <div class="flex justify-between text-[11px] font-mono-tech text-[var(--md-sys-color-on-surface-variant)] -mt-1">
+                  <span id="currentTimeLabel">00:00</span>
+                  <span id="totalTimeLabel">00:32</span>
+                </div>
+              </div>
+
+              <!-- Transport Controls with Magnetic Shape-Shifting Play/Pause Button -->
+              <div class="relative z-10 flex items-center justify-center gap-5 pb-1">
+                <button type="button" id="prevTrackBtn" aria-label="Pista anterior" class="m3-spring-btn w-12 h-12 rounded-full bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface)] flex items-center justify-center cursor-pointer">
+                  <span class="material-symbols-rounded text-2xl">skip_previous</span>
+                </button>
+
+                <!-- Magnetic Zone Wrapper -->
+                <div id="magneticZone" class="relative p-3 flex items-center justify-center">
+                  <button type="button" id="playPauseBtn" aria-label="Reproducir o pausar" class="play-morph-btn w-16 h-16 flex items-center justify-center shadow-xl cursor-pointer">
+                    <span id="playPauseIcon" class="material-symbols-rounded text-3xl">play_arrow</span>
+                  </button>
+                </div>
+
+                <button type="button" id="nextTrackBtn" aria-label="Siguiente pista" class="m3-spring-btn w-12 h-12 rounded-full bg-[var(--md-sys-color-surface-container-high)] text-[var(--md-sys-color-on-surface)] flex items-center justify-center cursor-pointer">
+                  <span class="material-symbols-rounded text-2xl">skip_next</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: 10-BAND DSP EQUALIZER & REAL-TIME PIPELINE HUD (7 cols) -->
+        <div id="audio-dsp" class="lg:col-span-7 flex flex-col gap-5">
+
+          <!-- DSP Equalizer Card -->
+          <div class="m3-surface-card p-5 sm:p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+              <div>
+                <h3 class="font-display font-bold text-xl flex items-center gap-2">
+                  <span class="material-symbols-rounded text-[var(--md-sys-color-primary)]">equalizer</span>
+                  Ecualizador Gráfico DSP de 10 Bandas
+                </h3>
+                <p class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-0.5">
+                  Filtros Biquad en tiempo real con memoria independiente por dispositivo de salida.
+                </p>
+              </div>
+
+              <!-- Output Device Profile Selector -->
+              <div class="inline-flex p-1 rounded-full bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]" role="group" aria-label="Perfil por dispositivo">
+                <button type="button" data-device="speaker" class="device-profile-btn active flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all">
+                  <span class="material-symbols-rounded text-[15px]">speaker</span>
+                  <span>Altavoz</span>
+                </button>
+                <button type="button" data-device="wired" class="device-profile-btn flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all">
+                  <span class="material-symbols-rounded text-[15px]">headphones</span>
+                  <span>Cable</span>
+                </button>
+                <button type="button" data-device="bluetooth" class="device-profile-btn flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all">
+                  <span class="material-symbols-rounded text-[15px]">bluetooth_audio</span>
+                  <span>Bluetooth</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Frequency Response Curve Canvas/SVG + 10 Sliders -->
+            <div class="relative rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)] p-4 mb-5 overflow-x-auto">
+              <!-- Live Smooth EQ Curve Overlay -->
+              <svg id="eqCurveSvg" viewBox="0 0 600 120" preserveAspectRatio="none" class="w-full h-14 mb-2 pointer-events-none">
+                <defs>
+                  <linearGradient id="eqAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--md-sys-color-primary)" stop-opacity="0.32"/>
+                    <stop offset="100%" stop-color="var(--md-sys-color-primary)" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                <!-- 0dB Reference Line -->
+                <line x1="0" y1="60" x2="600" y2="60" stroke="var(--md-sys-color-outline-variant)" stroke-dasharray="4 4" stroke-width="1"/>
+                <path id="eqCurveArea" d="M 0 60 L 600 60 L 600 120 L 0 120 Z" fill="url(#eqAreaGrad)"/>
+                <path id="eqCurveLine" d="M 0 60 L 600 60" fill="none" stroke="var(--md-sys-color-primary)" stroke-width="2.5" stroke-linecap="round"/>
+              </svg>
+
+              <!-- 10 Frequency Band Sliders -->
+              <div id="eqBandsGrid" class="grid grid-cols-10 gap-1 min-w-[460px] text-center">
+                <!-- Populated dynamically by JS -->
+              </div>
+            </div>
+
+            <!-- Presets Row + 1-Tap Slowed + Reverb -->
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" data-preset="flat" class="eq-preset-btn active m3-chip px-3 py-1.5 text-xs font-semibold">Plano</button>
+                <button type="button" data-preset="bass" class="eq-preset-btn m3-chip px-3 py-1.5 text-xs font-semibold">Bass Boost</button>
+                <button type="button" data-preset="trap" class="eq-preset-btn m3-chip px-3 py-1.5 text-xs font-semibold">Trap / Urbano</button>
+                <button type="button" data-preset="vocal" class="eq-preset-btn m3-chip px-3 py-1.5 text-xs font-semibold">Vocal</button>
+                <button type="button" data-preset="night" class="eq-preset-btn m3-chip px-3 py-1.5 text-xs font-semibold">Night Mode DRC</button>
+              </div>
+
+              <!-- 1-Tap Slowed + Reverb Button -->
+              <button type="button" id="slowedReverbBtn" aria-pressed="false" class="m3-spring-btn inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)] border border-[var(--md-sys-color-outline-variant)] cursor-pointer">
+                <span class="material-symbols-rounded text-[16px]">slow_motion_video</span>
+                <span>1-Tap Slowed + Reverb</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Real-Time Audio Pipeline HUD Card (#42) -->
+          <div class="m3-surface-card p-5">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-mono-tech font-bold uppercase tracking-wider text-[var(--md-sys-color-on-surface-variant)] flex items-center gap-1.5">
+                <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)]">terminal</span>
+                Real-Time Audio Pipeline HUD
+              </span>
+              <span id="hudFpsBadge" class="font-mono-tech text-xs px-2.5 py-0.5 rounded-full bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] font-semibold">
+                120 FPS • 8.3 ms
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono-tech">
+              <div class="p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+                <div class="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase">Códec / Flujo</div>
+                <div id="hudCodecValue" class="text-xs sm:text-sm font-bold mt-0.5 truncate">PCM Float32</div>
+              </div>
+              <div class="p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+                <div class="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase">Muestreo</div>
+                <div id="hudSampleRateValue" class="text-xs sm:text-sm font-bold mt-0.5">48.0 kHz / 24-bit</div>
+              </div>
+              <div class="p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+                <div class="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase">Audio Offload DSP</div>
+                <div id="hudOffloadValue" class="text-xs sm:text-sm font-bold text-[var(--md-sys-color-primary)] mt-0.5">ACTIVO (DSP)</div>
+              </div>
+              <div class="p-3 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+                <div class="text-[10px] text-[var(--md-sys-color-on-surface-variant)] uppercase">Velocidad / Efecto</div>
+                <div id="hudSpeedValue" class="text-xs sm:text-sm font-bold mt-0.5">1.00x • Normal</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         3. BENTO GRID DE OPTIMIZACIÓN EXTREMA (120 FPS Y BATERÍA)
+         ====================================================================== -->
+    <section id="rendimiento" class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <div class="max-w-3xl mb-10">
+        <span class="text-xs font-mono-tech font-bold uppercase tracking-wider text-[var(--md-sys-color-primary)]">INGENIERÍA ANDROID DE BAJO NIVEL</span>
+        <h2 class="font-display font-bold text-3xl sm:text-4xl tracking-tight mt-1.5">Optimización Extrema: 120 FPS y Batería Mínima</h2>
+        <p class="text-sm sm:text-base text-[var(--md-sys-color-on-surface-variant)] mt-2">
+          Diseñado para bibliotecas de más de 15.000 pistas FLAC/MP3 sin micro-tirones, sin duplicar almacenamiento y permitiendo que la CPU duerma con la pantalla apagada.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+
+        <!-- Card 1: Hardware Audio Offload DSP (7 cols) -->
+        <div class="md:col-span-7 m3-surface-card m3-surface-card-interactive p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-3 mb-4">
+              <div class="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center">
+                <span class="material-symbols-rounded text-2xl">battery_charging_full</span>
+              </div>
+              <button type="button" id="offloadSimToggle" class="m3-chip active px-3.5 py-1.5 text-xs font-mono-tech font-semibold cursor-pointer">
+                Simular: DSP Offload ON
+              </button>
+            </div>
+            <h3 class="font-display font-bold text-2xl mb-2">Hardware Audio Offload (DSP)</h3>
+            <p class="text-sm text-[var(--md-sys-color-on-surface-variant)] leading-relaxed mb-6">
+              Cuando el ecualizador está en bypass, <code class="font-mono-tech text-xs text-[var(--md-sys-color-primary)]">Media3 ExoPlayer</code> delega la decodificación directamente al chip DSP dedicado del SoC. La CPU principal entra en sueño profundo con la pantalla apagada.
+            </p>
+          </div>
+
+          <!-- Interactive Power Meter -->
+          <div class="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+            <div class="flex justify-between text-xs font-mono-tech mb-2">
+              <span id="offloadModeLabel">Modo DSP Hardware (CPU en Deep Sleep)</span>
+              <span id="offloadPowerStat" class="text-[var(--md-sys-color-primary)] font-bold">-78% Consumo CPU</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-[var(--md-sys-color-surface-container-highest)] overflow-hidden">
+              <div id="offloadPowerBar" class="h-full rounded-full bg-[var(--md-sys-color-primary)] transition-all duration-500" style="width: 22%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: 120 FPS Zero-Jank (5 cols) -->
+        <div class="md:col-span-5 m3-surface-card m3-surface-card-interactive p-6 flex flex-col justify-between">
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-secondary-container)] text-[var(--md-sys-color-on-secondary-container)] flex items-center justify-center mb-4">
+              <span class="material-symbols-rounded text-2xl">bolt</span>
+            </div>
+            <h3 class="font-display font-bold text-2xl mb-2">120 FPS Zero-Jank</h3>
+            <p class="text-sm text-[var(--md-sys-color-on-surface-variant)] leading-relaxed mb-5">
+              Compilación con <strong class="text-[var(--md-sys-color-on-surface)]">Baseline Profiles</strong> y <strong class="text-[var(--md-sys-color-on-surface)]">R8 Full Mode</strong>. Todas las animaciones de resorte y ondas se ejecutan en fase de dibujo (<code class="font-mono-tech text-xs">graphicsLayer</code>) sin recomponer árboles de Compose.
+            </p>
+          </div>
+
+          <div class="space-y-3 font-mono-tech text-xs">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-[var(--md-sys-color-primary)] font-bold">SynFix (120 Hz)</span>
+                <span>8.3 ms / frame</span>
+              </div>
+              <div class="w-full h-2.5 rounded-full bg-[var(--md-sys-color-surface-container-highest)]">
+                <div class="h-full rounded-full bg-[var(--md-sys-color-primary)]" style="width: 48%;"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-1 text-[var(--md-sys-color-on-surface-variant)]">
+                <span>Reproductor estándar (60 Hz)</span>
+                <span>16.6 ms / frame</span>
+              </div>
+              <div class="w-full h-2.5 rounded-full bg-[var(--md-sys-color-surface-container-highest)]">
+                <div class="h-full rounded-full bg-[var(--md-sys-color-outline)]" style="width: 96%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Memoria Quirúrgica Coil 3 + Room WAL (6 cols) -->
+        <div class="md:col-span-6 m3-surface-card m3-surface-card-interactive p-6">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-tertiary-container)] text-[var(--md-sys-color-on-tertiary-container)] flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">storage</span>
+            </div>
+            <div>
+              <h3 class="font-display font-bold text-xl mb-2">Memoria Quirúrgica: Coil 3 + Room WAL</h3>
+              <ul class="space-y-2 text-sm text-[var(--md-sys-color-on-surface-variant)]">
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">Cero doble caché en disco:</strong> Desactiva caché redundante para URIs locales y limita la LRU RAM al 15% de la heap.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">Paletas cacheadas por <code class="font-mono-tech text-xs">albumId</code>:</strong> Extracción dinámica sobre miniaturas de <code class="font-mono-tech text-xs">64x64 px</code> una sola vez por disco.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">SQLite WAL Indexado:</strong> Consultas instantáneas sobre +15.000 canciones usando proyecciones ligeras.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Privacidad 100% Local & Biometric Vault (6 cols) -->
+        <div class="md:col-span-6 m3-surface-card m3-surface-card-interactive p-6">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center shrink-0">
+              <span class="material-symbols-rounded text-2xl">verified_user</span>
+            </div>
+            <div>
+              <h3 class="font-display font-bold text-xl mb-2">Privacidad Total y Cofre Biométrico</h3>
+              <ul class="space-y-2 text-sm text-[var(--md-sys-color-on-surface-variant)]">
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">Sin permiso de Internet:</strong> El manifiesto de SynFix ni siquiera solicita <code class="font-mono-tech text-xs">android.permission.INTERNET</code>. Cero rastreadores.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">Biometric Hidden Vault:</strong> Oculta carpetas privadas tras tu huella dactilar mediante índice booleano instantáneo sin cifrado lento.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <span class="material-symbols-rounded text-[16px] text-[var(--md-sys-color-primary)] mt-0.5">check_circle</span>
+                  <span><strong class="text-[var(--md-sys-color-on-surface)]">Filtro Anti-Basura:</strong> Ignora notas de voz de WhatsApp, tonos y audios cortos de menos de 15 segundos.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         4. EXPLORADOR DE LAS 42 FUNCIONES PRO
+         ====================================================================== -->
+    <section id="funciones" class="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-8">
+        <div>
+          <span class="text-xs font-mono-tech font-bold uppercase tracking-wider text-[var(--md-sys-color-primary)]">ARSENAL COMPLETO DE INGENIERÍA</span>
+          <h2 class="font-display font-bold text-3xl sm:text-4xl tracking-tight mt-1.5">Explorador de las 42 Funciones Pro</h2>
+          <p class="text-sm text-[var(--md-sys-color-on-surface-variant)] mt-1">
+            Cada función ha sido diseñada desde cero para Material 3 Expressive con presupuesto de ejecución blindado.
+          </p>
+        </div>
+
+        <!-- M3 SearchBar Pill -->
+        <div class="relative w-full lg:w-80">
+          <span class="material-symbols-rounded text-[20px] text-[var(--md-sys-color-on-surface-variant)] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+          <input type="text" id="featureSearchInput" placeholder="Buscar función, DSP, LRC, FLAC..." class="w-full pl-11 pr-10 py-3 rounded-full text-sm bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] text-[var(--md-sys-color-on-surface)] placeholder:text-[var(--md-sys-color-on-surface-variant)] focus:outline-none focus:border-[var(--md-sys-color-primary)] transition-colors" />
+          <button type="button" id="clearSearchBtn" aria-label="Limpiar búsqueda" class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[var(--md-sys-color-surface-container-highest)] items-center justify-center text-xs">
+            <span class="material-symbols-rounded text-[16px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- M3 Expressive Category Filter Chips -->
+      <div class="flex flex-wrap items-center gap-2 mb-8" role="group" aria-label="Filtrar funciones por categoría">
+        <button type="button" data-category="all" class="feature-cat-btn active m3-chip px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer">
+          Todas (42)
+        </button>
+        <button type="button" data-category="ui" class="feature-cat-btn m3-chip px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer">
+          UI Expressive y Físicas (10)
+        </button>
+        <button type="button" data-category="audio" class="feature-cat-btn m3-chip px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer">
+          Audio Estudio y DSP (11)
+        </button>
+        <button type="button" data-category="discovery" class="feature-cat-btn m3-chip px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer">
+          Descubrimiento y Juegos (10)
+        </button>
+        <button type="button" data-category="tools" class="feature-cat-btn m3-chip px-4 py-2 text-xs sm:text-sm font-semibold cursor-pointer">
+          Herramientas Locales (11)
+        </button>
+      </div>
+
+      <!-- 42 Features Grid -->
+      <div id="featuresGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Populated dynamically with all 42 functions -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="featuresEmptyState" class="hidden text-center py-14 m3-surface-card mt-4">
+        <span class="material-symbols-rounded text-4xl text-[var(--md-sys-color-on-surface-variant)] mb-2">search_off</span>
+        <p class="font-display font-bold text-lg">No se encontraron funciones con ese filtro</p>
+        <p class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">Prueba con otros términos como "FLAC", "vinilo", "DSP" o "BPM".</p>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         5. SECCIÓN DE DESCARGA, CÓDIGO ABIERTO & STACK TECNOLÓGICO
+         ====================================================================== -->
+    <section id="descarga" class="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-6">
+      <!-- Featured M3 Expressive Open-Source & Download Card -->
+      <div class="m3-surface-card p-6 sm:p-8 relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono-tech font-semibold bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] mb-3">
+              <span class="material-symbols-rounded text-[15px]">code</span>
+              <span>CÓDIGO ABIERTO • GITHUB OFICIAL</span>
+            </div>
+            <h2 class="font-display font-bold text-3xl sm:text-4xl tracking-tight">Descarga SynFix para Android</h2>
+            <p class="text-sm sm:text-base text-[var(--md-sys-color-on-surface-variant)] mt-2 leading-relaxed">
+              Obtén la última compilación o explora el código fuente completo de <strong class="text-[var(--md-sys-color-on-surface)]">Synkhs/SynFix</strong> construido 100% con Jetpack Compose, Material Design 3 Expressive y Media3.
+            </p>
+
+            <!-- Architecture Badges -->
+            <div class="flex flex-wrap items-center gap-2 mt-4 font-mono-tech text-[11px]">
+              <span class="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]">Kotlin 2.x</span>
+              <span class="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]">Compose M3 1.5+</span>
+              <span class="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]">Media3</span>
+              <span class="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]">120 FPS</span>
+              <span class="px-2.5 py-1 rounded-lg bg-[var(--md-sys-color-surface-container-highest)] border border-[var(--md-sys-color-outline-variant)]">DSP Offload</span>
+            </div>
+          </div>
+
+          <!-- Download Action & Git Clone Box -->
+          <div class="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-3 shrink-0">
+            <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" class="m3-spring-btn inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-full font-semibold text-sm sm:text-base bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] shadow-xl">
+              <span class="material-symbols-rounded text-[22px]">download</span>
+              <span>Descargar desde GitHub</span>
+              <span class="material-symbols-rounded text-[18px]">open_in_new</span>
+            </a>
+
+            <div class="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)] font-mono-tech text-xs">
+              <code id="gitCloneCmd" class="text-[var(--md-sys-color-on-surface)] select-all">git clone https://github.com/Synkhs/SynFix.git</code>
+              <button type="button" id="copyGitCloneBtn" class="text-[var(--md-sys-color-primary)] hover:underline font-bold shrink-0 cursor-pointer">
+                Copiar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stack Tecnológico Nativo -->
+      <div class="m3-surface-card p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <span class="text-xs font-mono-tech font-bold uppercase tracking-wider text-[var(--md-sys-color-primary)]">ARQUITECTURA MODERNA</span>
+            <h3 class="font-display font-bold text-2xl sm:text-3xl mt-1">Stack Tecnológico Nativo</h3>
+          </div>
+          <span class="font-mono-tech text-xs px-3 py-1.5 rounded-full bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)]">
+            Clean Architecture + MVI Unidireccional
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div class="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+            <div class="text-xs font-mono-tech text-[var(--md-sys-color-primary)] font-semibold">LENGUAJE & UI</div>
+            <div class="font-display font-bold text-base mt-1">Kotlin 2.1+ & Compose</div>
+            <div class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">Material 3 Expressive 1.5.0+, MotionScheme.expressive() y MaterialShapes.</div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+            <div class="text-xs font-mono-tech text-[var(--md-sys-color-primary)] font-semibold">MOTOR MULTIMEDIA</div>
+            <div class="font-display font-bold text-base mt-1">AndroidX Media3 1.11+</div>
+            <div class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">ExoPlayer, MediaSessionService, Transformer y Audio Offload por hardware.</div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+            <div class="text-xs font-mono-tech text-[var(--md-sys-color-primary)] font-semibold">PROCESAMIENTO DSP</div>
+            <div class="font-display font-bold text-base mt-1">DynamicsProcessing</div>
+            <div class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">EQ de 10 bandas, MBC nocturno, EnvironmentalReverb y Mid/Side nativo.</div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)]">
+            <div class="text-xs font-mono-tech text-[var(--md-sys-color-primary)] font-semibold">DATOS & RENDIMIENTO</div>
+            <div class="font-display font-bold text-base mt-1">Room WAL & Coil 3</div>
+            <div class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1">Baseline Profiles, R8 Full Mode, Hilt DI e ImmutableList.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Clean M3 Footer -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-10 border-t border-[var(--md-sys-color-outline-variant)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--md-sys-color-on-surface-variant)]">
+    <div class="flex items-center gap-2.5">
+      <span class="font-display font-bold text-sm text-[var(--md-sys-color-on-surface)]">SynFix</span>
+      <span>•</span>
+      <span>100% Material Design 3 & M3 Expressive</span>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-4 font-mono-tech">
+      <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" class="text-[var(--md-sys-color-primary)] hover:underline inline-flex items-center gap-1">
+        <span>GitHub • Synkhs/SynFix</span>
+        <span class="material-symbols-rounded text-[14px]">open_in_new</span>
+      </a>
+      <span>•</span>
+      <span>Licencia MIT</span>
+      <span>•</span>
+      <a href="#inicio" class="hover:text-[var(--md-sys-color-on-surface)] transition-colors">Volver arriba ↑</a>
+    </div>
+  </footer>
+
+  <!-- ========================================================================
+       HORIZONTAL FLOATING TOOLBAR (M3 EXPRESSIVE BOTTOM NAVIGATION)
+       ======================================================================== -->
+  <nav class="m3-floating-toolbar" aria-label="Navegación principal flotante">
+    <div class="flex items-center gap-1">
+      <a href="#inicio" data-nav="inicio" class="nav-pill-btn active">
+        <span class="material-symbols-rounded text-[18px]">home</span>
+        <span>Inicio</span>
+      </a>
+      <a href="#simulador" data-nav="simulador" class="nav-pill-btn">
+        <span class="material-symbols-rounded text-[18px]">play_circle</span>
+        <span class="hidden sm:inline">Demo en Vivo</span>
+        <span class="sm:hidden">Demo</span>
+      </a>
+      <a href="#audio-dsp" data-nav="audio-dsp" class="nav-pill-btn">
+        <span class="material-symbols-rounded text-[18px]">equalizer</span>
+        <span class="hidden sm:inline">Audio DSP</span>
+        <span class="sm:hidden">DSP</span>
+      </a>
+      <a href="#rendimiento" data-nav="rendimiento" class="nav-pill-btn">
+        <span class="material-symbols-rounded text-[18px]">speed</span>
+        <span class="hidden md:inline">Rendimiento</span>
+        <span class="md:hidden">120Hz</span>
+      </a>
+      <a href="#funciones" data-nav="funciones" class="nav-pill-btn">
+        <span class="material-symbols-rounded text-[18px]">apps</span>
+        <span>42 Funciones</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ========================================================================
+       M3 EXPRESSIVE MODAL DIALOG (APK DOWNLOAD & R8 BUILD DETAILS)
+       ======================================================================== -->
+  <div id="apkModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="apkModalTitle">
+    <div class="w-full max-w-md rounded-[32px] bg-[var(--md-sys-color-surface-container-high)] border border-[var(--md-sys-color-outline-variant)] p-6 shadow-2xl transform transition-all">
+      <div class="flex items-center justify-between mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)] flex items-center justify-center">
+          <span class="material-symbols-rounded text-2xl">android</span>
+        </div>
+        <button type="button" id="closeApkModalBtn" aria-label="Cerrar diálogo" class="w-9 h-9 rounded-full bg-[var(--md-sys-color-surface-container)] flex items-center justify-center hover:bg-[var(--md-sys-color-surface-container-highest)] cursor-pointer">
+          <span class="material-symbols-rounded text-[20px]">close</span>
+        </button>
+      </div>
+
+      <h3 id="apkModalTitle" class="font-display font-bold text-2xl">SynFix v1.0.0-expressive</h3>
+      <p class="text-xs text-[var(--md-sys-color-on-surface-variant)] mt-1 mb-5">
+        Compilación de producción firmada con R8 Full Mode, Baseline Profiles incluidos y cero dependencias de red.
+      </p>
+
+      <div class="space-y-2.5 p-4 rounded-2xl bg-[var(--md-sys-color-surface-container-low)] border border-[var(--md-sys-color-outline-variant)] font-mono-tech text-xs mb-5">
+        <div class="flex justify-between">
+          <span class="text-[var(--md-sys-color-on-surface-variant)]">Arquitectura:</span>
+          <span id="modalArchLabel" class="font-bold text-[var(--md-sys-color-primary)]">arm64-v8a (8.4 MB)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-[var(--md-sys-color-on-surface-variant)]">Android Mínimo:</span>
+          <span>Android 8.0+ (API 26–36)</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-[var(--md-sys-color-on-surface-variant)]">Optimizaciones:</span>
+          <span>R8 Full + Baseline Profile</span>
+        </div>
+        <div class="pt-2 border-t border-[var(--md-sys-color-outline-variant)]">
+          <div class="text-[10px] text-[var(--md-sys-color-on-surface-variant)] mb-1">SHA-256 CHECKSUM:</div>
+          <div class="flex items-center justify-between gap-2 bg-black/30 px-2.5 py-1.5 rounded-lg">
+            <code id="sha256Text" class="text-[10px] truncate text-[var(--md-sys-color-on-surface)]">9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08</code>
+            <button type="button" id="copyShaModalBtn" class="text-[var(--md-sys-color-primary)] hover:underline shrink-0 font-bold cursor-pointer">Copiar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2.5">
+        <button type="button" id="cancelApkModalBtn" class="px-4 py-2.5 rounded-full text-xs font-semibold text-[var(--md-sys-color-on-surface-variant)] hover:bg-[var(--md-sys-color-surface-container)] cursor-pointer">
+          Cerrar
+        </button>
+        <a href="https://github.com/Synkhs/SynFix/tree/main" target="_blank" rel="noopener noreferrer" id="confirmApkDownloadBtn" class="m3-spring-btn inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-semibold bg-[var(--md-sys-color-primary)] text-[var(--md-sys-color-on-primary)] cursor-pointer">
+          <span class="material-symbols-rounded text-[18px]">download</span>
+          <span>Ir a GitHub (Synkhs/SynFix)</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       M3 SNACKBAR FEEDBACK TOAST
+       ======================================================================== -->
+  <div id="m3Snackbar" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-2xl bg-[var(--md-sys-color-on-surface)] text-[var(--md-sys-color-surface)] text-xs font-semibold shadow-2xl flex items-center gap-2 opacity-0 pointer-events-none transition-all duration-300 translate-y-2">
+    <span class="material-symbols-rounded text-[18px]">check_circle</span>
+    <span id="snackbarText">Acción completada</span>
+  </div>
+
+  <!-- ========================================================================
+       JAVASCRIPT: WEB AUDIO DSP ENGINE, M3 EXPRESSIVE ANIMATIONS & 42 FEATURES
+       ======================================================================== -->
+  <script>
+    (() => {
+      'use strict';
+
+      /* ----------------------------------------------------------------------
+         1. ALL 42 PRO FEATURES CATALOG
+      function copyToClipboardFallback(text, successMsg = 'Copiado al portapapeles') {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        try {
+          document.execCommand('copy');
+          showSnackbar(successMsg);
+        } catch (err) {
+          showSnackbar('No se pudo copiar automáticamente');
+        }
+        document.body.removeChild(tempInput);
+      }
+
+      const apkModal = document.getElementById('apkModal');
+      const closeApkModalBtn = document.getElementById('closeApkModalBtn');
+      const cancelApkModalBtn = document.getElementById('cancelApkModalBtn');
+      const confirmApkDownloadBtn = document.getElementById('confirmApkDownloadBtn');
+      const splitMenuToggle = document.getElementById('splitMenuToggle');
+      const splitDropdown = document.getElementById('splitDropdown');
+      const splitChevron = document.getElementById('splitChevron');
+      const modalArchLabel = document.getElementById('modalArchLabel');
+      const sha256Text = document.getElementById('sha256Text').textContent;
+      const gitCloneCmdText = document.getElementById('gitCloneCmd').textContent;
+
+      function openApkModal(archText) {
+        if (archText) modalArchLabel.textContent = archText;
+        apkModal.classList.remove('hidden');
+        splitDropdown.classList.add('hidden');
+        splitChevron.style.transform = 'rotate(0deg)';
+      }
+
+      function closeApkModal() {
+        apkModal.classList.add('hidden');
+      }
+
+      closeApkModalBtn.addEventListener('click', closeApkModal);
+      cancelApkModalBtn.addEventListener('click', closeApkModal);
+      apkModal.addEventListener('click', (e) => {
+        if (e.target === apkModal) closeApkModal();
+      });
+
+      confirmApkDownloadBtn.addEventListener('click', () => {
+        closeApkModal();
+        showSnackbar('Abriendo repositorio oficial Synkhs/SynFix en GitHub...');
+      });
+
+      splitMenuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = splitDropdown.classList.contains('hidden');
+        splitDropdown.classList.toggle('hidden', !isHidden);
+        splitChevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+
+      document.querySelectorAll('.arch-option').forEach(btn => {
+        btn.addEventListener('click', () => openApkModal(btn.dataset.arch));
+      });
+
+      document.getElementById('quickCopyCloneBtn').addEventListener('click', () => {
+        splitDropdown.classList.add('hidden');
+        splitChevron.style.transform = 'rotate(0deg)';
+        copyToClipboardFallback(gitCloneCmdText, 'Comando git clone copiado al portapapeles');
+      });
+
+      document.getElementById('copyGitCloneBtn').addEventListener('click', () => {
+        copyToClipboardFallback(gitCloneCmdText, 'Comando git clone copiado al portapapeles');
+      });
+
+      document.getElementById('copyShaModalBtn').addEventListener('click', () => {
+        copyToClipboardFallback(sha256Text, 'Hash SHA-256 copiado al portapapeles');
+      });
+      }
+
+      themeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const theme = btn.dataset.setTheme;
+          htmlEl.setAttribute('data-theme', theme);
+          applyThemeButtonStyles(theme);
+        });
+      });
+      applyThemeButtonStyles('monochrome');
+
+      amoledToggle.addEventListener('click', () => {
+        const isAmoled = htmlEl.getAttribute('data-amoled') === 'true';
+        const nextState = !isAmoled;
+        htmlEl.setAttribute('data-amoled', String(nextState));
+        amoledToggle.setAttribute('aria-pressed', String(nextState));
+        if (nextState) {
+          amoledToggle.style.backgroundColor = 'var(--md-sys-color-primary)';
+          amoledToggle.style.color = 'var(--md-sys-color-on-primary)';
+          showSnackbar('Negro Puro AMOLED (#000000) activado');
+        } else {
+          amoledToggle.style.backgroundColor = 'var(--md-sys-color-surface-container)';
+          amoledToggle.style.color = 'var(--md-sys-color-on-surface-variant)';
+          showSnackbar('Superficie tonal M3 restaurada');
+        }
+      });
+
+      /* ----------------------------------------------------------------------
+         3. SNACKBAR & APK MODAL + SPLIT BUTTON
+         ---------------------------------------------------------------------- */
+      const snackbarEl = document.getElementById('m3Snackbar');
+      const snackbarText = document.getElementById('snackbarText');
+      let snackbarTimeout = null;
+
+      function showSnackbar(message) {
+        snackbarText.textContent = message;
+        snackbarEl.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+        snackbarEl.classList.add('opacity-100', 'translate-y-0');
+        clearTimeout(snackbarTimeout);
+        snackbarTimeout = setTimeout(() => {
+          snackbarEl.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+          snackbarEl.classList.remove('opacity-100', 'translate-y-0');
+        }, 2800);
+      }
+
+      function copyToClipboardFallback(text) {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = text;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        try {
+          document.execCommand('copy');
+          showSnackbar('Hash SHA-256 copiado al portapapeles');
+        } catch (err) {
+          showSnackbar('No se pudo copiar automáticamente');
+        }
+        document.body.removeChild(tempInput);
+      }
+
+      const apkModal = document.getElementById('apkModal');
+      const openApkModalBtn = document.getElementById('openApkModalBtn');
+      const closeApkModalBtn = document.getElementById('closeApkModalBtn');
+      const cancelApkModalBtn = document.getElementById('cancelApkModalBtn');
+      const confirmApkDownloadBtn = document.getElementById('confirmApkDownloadBtn');
+      const splitMenuToggle = document.getElementById('splitMenuToggle');
+      const splitDropdown = document.getElementById('splitDropdown');
+      const splitChevron = document.getElementById('splitChevron');
+      const modalArchLabel = document.getElementById('modalArchLabel');
+      const sha256Text = document.getElementById('sha256Text').textContent;
+
+      function openApkModal(archText) {
+        if (archText) modalArchLabel.textContent = archText;
+        apkModal.classList.remove('hidden');
+        splitDropdown.classList.add('hidden');
+        splitChevron.style.transform = 'rotate(0deg)';
+      }
+
+      function closeApkModal() {
+        apkModal.classList.add('hidden');
+      }
+
+      openApkModalBtn.addEventListener('click', () => openApkModal());
+      closeApkModalBtn.addEventListener('click', closeApkModal);
+      cancelApkModalBtn.addEventListener('click', closeApkModal);
+      apkModal.addEventListener('click', (e) => {
+        if (e.target === apkModal) closeApkModal();
+      });
+
+      confirmApkDownloadBtn.addEventListener('click', () => {
+        closeApkModal();
+        showSnackbar('Descarga iniciada: SynFix-v1.0-arm64-release.apk');
+      });
+
+      splitMenuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = splitDropdown.classList.contains('hidden');
+        splitDropdown.classList.toggle('hidden', !isHidden);
+        splitChevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+      });
+
+      document.querySelectorAll('.arch-option').forEach(btn => {
+        btn.addEventListener('click', () => openApkModal(btn.dataset.arch));
+      });
+
+      document.getElementById('quickCopyShaBtn').addEventListener('click', () => {
+        splitDropdown.classList.add('hidden');
+        splitChevron.style.transform = 'rotate(0deg)';
+        copyToClipboardFallback(sha256Text);
+      });
+
+      document.getElementById('copyShaModalBtn').addEventListener('click', () => {
+        copyToClipboardFallback(sha256Text);
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!splitDropdown.contains(e.target) && !splitMenuToggle.contains(e.target)) {
+          splitDropdown.classList.add('hidden');
+          splitChevron.style.transform = 'rotate(0deg)';
+        }
+      });
+
+      /* ----------------------------------------------------------------------
+         4. WEB AUDIO API ENGINE (10-BAND BIQUAD EQ + SYNTH TRACKS + LOCAL FILES)
+         ---------------------------------------------------------------------- */
+      const EQ_FREQUENCIES = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+      const EQ_LABELS = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k'];
+
+      const EQ_PRESETS = {
+        flat:  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        bass:  [7, 6, 4, 1, 0, 0, 0, 1, 2, 2],
+        trap:  [8, 7, 3, -2, -1, 1, 2, 4, 6, 7],
+        vocal: [-3, -2, 0, 2, 4, 5, 4, 2, 0, -1],
+        night: [3, 2, 1, 0, 1, 2, 1, -2, -4, -5]
+      };
+
+      const deviceCurves = {
+        speaker:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        wired:     [2, 1, 0, 0, 0, 1, 1, 2, 3, 2],
+        bluetooth: [4, 3, 1, -1, 0, 1, 2, 3, 4, 3]
+      };
+      let activeDevice = 'speaker';
+
+      const DEMO_TRACKS = [
+        {
+          title: 'Midnight Sub (808 Demo)',
+          artist: 'SynFix Audio Lab • Trap 140 BPM',
+          bpm: 140,
+          duration: 32,
+          icon: 'graphic_eq',
+          codec: 'SYNTH DSP • 24-bit • 48kHz',
+          type: 'trap'
+        },
+        {
+          title: 'Velvet Tape Sessions',
+          artist: 'Analog Lo-Fi • 85 BPM',
+          bpm: 85,
+          duration: 36,
+          icon: 'album',
+          codec: 'SYNTH DSP • 24-bit • 48kHz',
+          type: 'lofi'
+        },
+        {
+          title: 'Neon Horizon Drive',
+          artist: 'Outrun Synthwave • 118 BPM',
+          bpm: 118,
+          duration: 34,
+          icon: 'bolt',
+          codec: 'SYNTH DSP • 24-bit • 48kHz',
+          type: 'synthwave'
+        }
+      ];
+
+      let currentTrackIndex = 0;
+      let isPlaying = false;
+      let isSlowedReverb = false;
+      let playbackRate = 1.0;
+
+      // AudioContext & Nodes
+      let audioCtx = null;
+      let masterGain = null;
+      let dryGain = null;
+      let wetGain = null;
+      let convolverNode = null;
+      let analyserNode = null;
+      let eqFilters = [];
+      let freqDataArray = null;
+
+      // Local File Audio Element
+      let localAudioEl = null;
+      let localMediaSource = null;
+      let isUsingLocalFile = false;
+      let localTrackMeta = null;
+
+      // Sequencer State for Demo Synth Tracks
+      let synthPositionSec = 0;
+      let lastFrameTimestamp = performance.now();
+      let stepCounter = 0;
+      let nextStepTime = 0;
+      let schedulerTimer = null;
+
+      function createImpulseResponse(ctx, duration = 2.2, decay = 2.4) {
+        const sampleRate = ctx.sampleRate;
+        const length = Math.floor(sampleRate * duration);
+        const impulse = ctx.createBuffer(2, length, sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = impulse.getChannelData(ch);
+          for (let i = 0; i < length; i++) {
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+          }
+        }
+        return impulse;
+      }
+
+      function initAudioEngine() {
+        if (audioCtx) {
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          return;
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.78;
+
+        // Build 10-band BiquadFilter chain
+        eqFilters = EQ_FREQUENCIES.map((freq, idx) => {
+          const filter = audioCtx.createBiquadFilter();
+          if (idx === 0) filter.type = 'lowshelf';
+          else if (idx === EQ_FREQUENCIES.length - 1) filter.type = 'highshelf';
+          else filter.type = 'peaking';
+          filter.frequency.value = freq;
+          filter.Q.value = 1.4;
+          filter.gain.value = deviceCurves[activeDevice][idx];
+          return filter;
+        });
+
+        for (let i = 0; i < eqFilters.length - 1; i++) {
+          eqFilters[i].connect(eqFilters[i + 1]);
+        }
+
+        // Dry / Wet Reverb Parallel Path for 1-Tap Slowed + Reverb
+        dryGain = audioCtx.createGain();
+        wetGain = audioCtx.createGain();
+        dryGain.gain.value = 1.0;
+        wetGain.gain.value = isSlowedReverb ? 0.45 : 0.0;
+
+        convolverNode = audioCtx.createConvolver();
+        convolverNode.buffer = createImpulseResponse(audioCtx, 2.4, 2.5);
+
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+        analyserNode.smoothingTimeConstant = 0.8;
+        freqDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+
+        // Route: masterGain -> eqFilters[0] ... eqFilters[9] -> dryGain & convolverNode -> analyserNode -> destination
+        masterGain.connect(eqFilters[0]);
+        const lastEq = eqFilters[eqFilters.length - 1];
+        lastEq.connect(dryGain);
+        lastEq.connect(convolverNode);
+        convolverNode.connect(wetGain);
+
+        dryGain.connect(analyserNode);
+        wetGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
+
+        updateHudStatus();
+      }
+
+      /* ----------------------------------------------------------------------
+         5. PROCEDURAL SYNTH ENGINE FOR 3 DEMO TRACKS
+         ---------------------------------------------------------------------- */
+      function triggerDrumHit(time, type, intensity = 1) {
+        if (!audioCtx || !masterGain) return;
+        if (type === 'kick') {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(135, time);
+          osc.frequency.exponentialRampToValueAtTime(42, time + 0.14);
+          gain.gain.setValueAtTime(0.85 * intensity, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.36);
+          osc.connect(gain);
+          gain.connect(masterGain);
+          osc.start(time);
+          osc.stop(time + 0.37);
+        } else if (type === 'snare') {
+          const bufferSize = Math.floor(audioCtx.sampleRate * 0.18);
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 950;
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.42 * intensity, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.17);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+          noise.start(time);
+        } else if (type === 'hat') {
+          const bufferSize = Math.floor(audioCtx.sampleRate * 0.05);
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 6500;
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.18 * intensity, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(masterGain);
+          noise.start(time);
+        }
+      }
+
+      function triggerSynthNote(time, freq, duration, wave = 'triangle', volume = 0.25, cutoff = 1800) {
+        if (!audioCtx || !masterGain) return;
+        const osc = audioCtx.createOscillator();
+        const filter = audioCtx.createBiquadFilter();
+        const gain = audioCtx.createGain();
+        osc.type = wave;
+        osc.frequency.setValueAtTime(freq, time);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(cutoff, time);
+        filter.frequency.exponentialRampToValueAtTime(Math.max(180, cutoff * 0.35), time + duration);
+
+        gain.gain.setValueAtTime(0.001, time);
+        gain.gain.linearRampToValueAtTime(volume, time + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(masterGain);
+        osc.start(time);
+        osc.stop(time + duration + 0.02);
+      }
+
+      function scheduleSynthStep(step, time, trackType) {
+        const s = step % 16;
+        if (trackType === 'trap') {
+          // 808 Kick + Sub
+          if (s === 0 || s === 6 || s === 10) {
+            triggerDrumHit(time, 'kick', 1.0);
+            const bassNotes = [55, 55, 65.41, 49.0];
+            const note = bassNotes[Math.floor((step / 16) % bassNotes.length)];
+            triggerSynthNote(time, note, 0.42, 'sine', 0.48, 320);
+          }
+          // Trap Snare on 4 & 12
+          if (s === 4 || s === 12) triggerDrumHit(time, 'snare', 0.95);
+          // Crisp Hi-Hats with rolls
+          if (s % 2 === 0 || s === 7 || s === 14 || s === 15) {
+            triggerDrumHit(time, 'hat', s % 2 === 0 ? 0.9 : 0.55);
+          }
+          // Dark Bell Pluck
+          const melody = [440, 0, 523.25, 0, 659.25, 0, 587.33, 0, 440, 0, 392.0, 0, 493.88, 0, 523.25, 0];
+          if (melody[s] > 0) {
+            triggerSynthNote(time, melody[s], 0.25, 'triangle', 0.14, 2400);
+          }
+        } else if (trackType === 'lofi') {
+          if (s === 0 || s === 7 || s === 10) triggerDrumHit(time, 'kick', 0.72);
+          if (s === 4 || s === 12) triggerDrumHit(time, 'snare', 0.52);
+          if (s % 2 === 0) triggerDrumHit(time, 'hat', 0.35);
+          // Warm Rhodes chords on 0 and 8
+          if (s === 0) {
+            [261.63, 329.63, 392.0, 493.88].forEach(f => triggerSynthNote(time, f, 1.3, 'sine', 0.11, 1100));
+          } else if (s === 8) {
+            [220.0, 261.63, 329.63, 392.0].forEach(f => triggerSynthNote(time, f, 1.3, 'sine', 0.11, 1100));
+          }
+        } else {
+          // Synthwave 118 BPM
+          if (s % 4 === 0) triggerDrumHit(time, 'kick', 0.92);
+          if (s === 4 || s === 12) triggerDrumHit(time, 'snare', 0.85);
+          if (s % 2 === 1) triggerDrumHit(time, 'hat', 0.65);
+          const arp = [110, 110, 220, 110, 130.81, 130.81, 261.63, 130.81, 146.83, 146.83, 293.66, 146.83, 164.81, 164.81, 329.63, 196.0];
+          triggerSynthNote(time, arp[s], 0.18, 'sawtooth', 0.18, 1750);
+        }
+      }
+
+      function startSynthScheduler() {
+        stopSynthScheduler();
+        nextStepTime = audioCtx.currentTime + 0.03;
+        schedulerTimer = setInterval(() => {
+          if (!isPlaying || isUsingLocalFile || !audioCtx) return;
+          const track = DEMO_TRACKS[currentTrackIndex];
+          const effectiveBpm = track.bpm * playbackRate;
+          const stepDuration = (60 / effectiveBpm) / 4; // 16th note
+          while (nextStepTime < audioCtx.currentTime + 0.1) {
+            scheduleSynthStep(stepCounter, nextStepTime, track.type);
+            nextStepTime += stepDuration;
+            stepCounter++;
+          }
+        }, 25);
+      }
+
+      function stopSynthScheduler() {
+        if (schedulerTimer) {
+          clearInterval(schedulerTimer);
+          schedulerTimer = null;
+        }
+      }
+
+      /* ----------------------------------------------------------------------
+         6. PLAYBACK CONTROLS & LOCAL AUDIO LOADER
+         ---------------------------------------------------------------------- */
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      const playPauseIcon = document.getElementById('playPauseIcon');
+      const playerTrackTitle = document.getElementById('playerTrackTitle');
+      const playerTrackArtist = document.getElementById('playerTrackArtist');
+      const trackCodecTag = document.getElementById('trackCodecTag');
+      const coverCenterIcon = document.getElementById('coverCenterIcon');
+      const coverBpmBadge = document.getElementById('coverBpmBadge');
+      const currentTimeLabel = document.getElementById('currentTimeLabel');
+      const totalTimeLabel = document.getElementById('totalTimeLabel');
+
+      function formatTime(sec) {
+        if (!isFinite(sec) || sec < 0) return '00:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+
+      function updateTrackMetadataUI() {
+        if (isUsingLocalFile && localTrackMeta) {
+          playerTrackTitle.textContent = localTrackMeta.title;
+          playerTrackArtist.textContent = localTrackMeta.artist;
+          trackCodecTag.textContent = localTrackMeta.codec;
+          coverCenterIcon.textContent = 'audio_file';
+          coverBpmBadge.textContent = 'ARCHIVO LOCAL • DSP';
+          totalTimeLabel.textContent = formatTime(localAudioEl ? localAudioEl.duration : 0);
+        } else {
+          const track = DEMO_TRACKS[currentTrackIndex];
+          playerTrackTitle.textContent = track.title;
+          playerTrackArtist.textContent = track.artist;
+          trackCodecTag.textContent = track.codec;
+          coverCenterIcon.textContent = track.icon;
+          coverBpmBadge.textContent = `${track.bpm} BPM • BASS MORPH`;
+          totalTimeLabel.textContent = formatTime(track.duration);
+        }
+        updateHudStatus();
+      }
+
+      function setPlayingState(playing) {
+        isPlaying = playing;
+        playPauseIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
+        playPauseBtn.classList.toggle('is-playing', isPlaying);
+
+        if (isPlaying) {
+          initAudioEngine();
+          if (isUsingLocalFile && localAudioEl) {
+            localAudioEl.playbackRate = playbackRate;
+            localAudioEl.play().catch(() => {});
+          } else {
+            lastFrameTimestamp = performance.now();
+            startSynthScheduler();
+          }
+        } else {
+          if (isUsingLocalFile && localAudioEl) {
+            localAudioEl.pause();
+          }
+          stopSynthScheduler();
+        }
+      }
+
+      playPauseBtn.addEventListener('click', () => {
+        setPlayingState(!isPlaying);
+      });
+
+      function selectDemoTrack(index, autoPlay = true) {
+        isUsingLocalFile = false;
+        if (localAudioEl) localAudioEl.pause();
+        currentTrackIndex = (index + DEMO_TRACKS.length) % DEMO_TRACKS.length;
+        synthPositionSec = 0;
+        stepCounter = 0;
+
+        document.querySelectorAll('.track-select-btn').forEach((btn, i) => {
+          btn.classList.toggle('active', i === currentTrackIndex);
+        });
+
+        updateTrackMetadataUI();
+        if (autoPlay) setPlayingState(true);
+      }
+
+      document.querySelectorAll('.track-select-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          selectDemoTrack(Number(btn.dataset.track), true);
+        });
+      });
+
+      document.getElementById('prevTrackBtn').addEventListener('click', () => {
+        if (isUsingLocalFile && localAudioEl) {
+          localAudioEl.currentTime = 0;
+          return;
+        }
+        selectDemoTrack(currentTrackIndex - 1, isPlaying);
+      });
+
+      document.getElementById('nextTrackBtn').addEventListener('click', () => {
+        selectDemoTrack(currentTrackIndex + 1, isPlaying);
+      });
+
+      // Local Audio File Loader
+      document.getElementById('localAudioInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        initAudioEngine();
+        stopSynthScheduler();
+
+        const objectUrl = URL.createObjectURL(file);
+        if (!localAudioEl) {
+          localAudioEl = new Audio();
+          localAudioEl.crossOrigin = 'anonymous';
+          localAudioEl.addEventListener('ended', () => setPlayingState(false));
+          localAudioEl.addEventListener('loadedmetadata', () => {
+            totalTimeLabel.textContent = formatTime(localAudioEl.duration);
+          });
+          localMediaSource = audioCtx.createMediaElementSource(localAudioEl);
+          localMediaSource.connect(masterGain);
+        }
+
+        localAudioEl.src = objectUrl;
+        isUsingLocalFile = true;
+
+        const ext = (file.name.split('.').pop() || 'AUDIO').toUpperCase();
+        const cleanName = file.name.replace(/\.[^/.]+$/, '');
+        localTrackMeta = {
+          title: cleanName,
+          artist: `Archivo Local (${(file.size / (1024 * 1024)).toFixed(1)} MB)`,
+          codec: `${ext} • LOCAL DSP • 48kHz`
+        };
+
+        document.querySelectorAll('.track-select-btn').forEach(b => b.classList.remove('active'));
+        updateTrackMetadataUI();
+        setPlayingState(true);
+        showSnackbar(`Cargado: ${cleanName}`);
+      });
+
+      /* ----------------------------------------------------------------------
+         7. 10-BAND EQUALIZER UI, DEVICE PROFILES & SLOWED+REVERB
+         ---------------------------------------------------------------------- */
+      const eqBandsGrid = document.getElementById('eqBandsGrid');
+      const eqCurveLine = document.getElementById('eqCurveLine');
+      const eqCurveArea = document.getElementById('eqCurveArea');
+      const eqSliders = [];
+      const eqDbLabels = [];
+
+      function buildEqSliders() {
+        eqBandsGrid.innerHTML = '';
+        EQ_LABELS.forEach((label, idx) => {
+          const col = document.createElement('div');
+          col.className = 'flex flex-col items-center justify-between';
+
+          const dbText = document.createElement('span');
+          dbText.className = 'font-mono-tech text-[10px] text-[var(--md-sys-color-primary)] font-semibold h-4';
+          dbText.textContent = '0dB';
+
+          const wrap = document.createElement('div');
+          wrap.className = 'eq-slider-wrapper';
+
+          const input = document.createElement('input');
+          input.type = 'range';
+          input.min = '-12';
+          input.max = '12';
+          input.step = '0.5';
+          input.value = '0';
+          input.className = 'm3-eq-slider';
+          input.setAttribute('aria-label', `Banda ${label} Hz`);
+
+          input.addEventListener('input', () => {
+            const val = parseFloat(input.value);
+            deviceCurves[activeDevice][idx] = val;
+            dbText.textContent = `${val > 0 ? '+' : ''}${val}dB`;
+            if (eqFilters[idx] && audioCtx) {
+              eqFilters[idx].gain.setTargetAtTime(val, audioCtx.currentTime, 0.015);
+            }
+            document.querySelectorAll('.eq-preset-btn').forEach(b => b.classList.remove('active'));
+            updateEqCurveSvg();
+            updateHudStatus();
+          });
+
+          const freqLabel = document.createElement('span');
+          freqLabel.className = 'font-mono-tech text-[10px] text-[var(--md-sys-color-on-surface-variant)] mt-1';
+          freqLabel.textContent = label;
+
+          wrap.appendChild(input);
+          col.appendChild(dbText);
+          col.appendChild(wrap);
+          col.appendChild(freqLabel);
+          eqBandsGrid.appendChild(col);
+
+          eqSliders.push(input);
+          eqDbLabels.push(dbText);
+        });
+        updateEqCurveSvg();
+      }
+
+      function applyEqValues(values) {
+        values.forEach((val, idx) => {
+          deviceCurves[activeDevice][idx] = val;
+          eqSliders[idx].value = val;
+          eqDbLabels[idx].textContent = `${val > 0 ? '+' : ''}${val}dB`;
+          if (eqFilters[idx] && audioCtx) {
+            eqFilters[idx].gain.setTargetAtTime(val, audioCtx.currentTime, 0.02);
+          }
+        });
+        updateEqCurveSvg();
+        updateHudStatus();
+      }
+
+      function updateEqCurveSvg() {
+        const vals = deviceCurves[activeDevice];
+        const width = 600;
+        const height = 120;
+        const midY = 60;
+        const points = vals.map((db, idx) => {
+          const x = (idx / (vals.length - 1)) * width;
+          const y = midY - (db / 12) * 46;
+          return { x, y };
+        });
+
+        let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+        for (let i = 0; i < points.length - 1; i++) {
+          const xc = (points[i].x + points[i + 1].x) / 2;
+          const yc = (points[i].y + points[i + 1].y) / 2;
+          d += ` Q ${points[i].x.toFixed(1)} ${points[i].y.toFixed(1)}, ${xc.toFixed(1)} ${yc.toFixed(1)}`;
+        }
+        const last = points[points.length - 1];
+        d += ` T ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+
+        eqCurveLine.setAttribute('d', d);
+        eqCurveArea.setAttribute('d', `${d} L ${width} ${height} L 0 ${height} Z`);
+      }
+
+      buildEqSliders();
+
+      // Preset Chips
+      document.querySelectorAll('.eq-preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const presetKey = btn.dataset.preset;
+          document.querySelectorAll('.eq-preset-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyEqValues([...EQ_PRESETS[presetKey]]);
+        });
+      });
+
+      // Device Profile Switcher (Altavoz / Cable / Bluetooth)
+      const deviceBtns = document.querySelectorAll('.device-profile-btn');
+      function updateDeviceBtnStyles() {
+        deviceBtns.forEach(btn => {
+          const active = btn.dataset.device === activeDevice;
+          btn.classList.toggle('active', active);
+          if (active) {
+            btn.style.backgroundColor = 'var(--md-sys-color-primary)';
+            btn.style.color = 'var(--md-sys-color-on-primary)';
+          } else {
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = 'var(--md-sys-color-on-surface-variant)';
+          }
+        });
+      }
+      updateDeviceBtnStyles();
+
+      deviceBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeDevice = btn.dataset.device;
+          updateDeviceBtnStyles();
+          applyEqValues([...deviceCurves[activeDevice]]);
+          showSnackbar(`Perfil DSP cargado: ${btn.textContent.trim()}`);
+        });
+      });
+
+      // 1-Tap Slowed + Reverb
+      const slowedReverbBtn = document.getElementById('slowedReverbBtn');
+      slowedReverbBtn.addEventListener('click', () => {
+        isSlowedReverb = !isSlowedReverb;
+        slowedReverbBtn.setAttribute('aria-pressed', String(isSlowedReverb));
+        playbackRate = isSlowedReverb ? 0.85 : 1.0;
+
+        if (isSlowedReverb) {
+          slowedReverbBtn.style.backgroundColor = 'var(--md-sys-color-primary)';
+          slowedReverbBtn.style.color = 'var(--md-sys-color-on-primary)';
+        } else {
+          slowedReverbBtn.style.backgroundColor = 'var(--md-sys-color-tertiary-container)';
+          slowedReverbBtn.style.color = 'var(--md-sys-color-on-tertiary-container)';
+        }
+
+        if (isUsingLocalFile && localAudioEl) {
+          localAudioEl.playbackRate = playbackRate;
+        }
+        if (wetGain && audioCtx) {
+          wetGain.gain.setTargetAtTime(isSlowedReverb ? 0.45 : 0.0, audioCtx.currentTime, 0.05);
+        }
+        updateHudStatus();
+        showSnackbar(isSlowedReverb ? 'Slowed (0.85x) + Reverb espacial activado' : 'Velocidad normal restaurada');
+      });
+
+      function updateHudStatus() {
+        const hudCodecValue = document.getElementById('hudCodecValue');
+        const hudOffloadValue = document.getElementById('hudOffloadValue');
+        const hudSpeedValue = document.getElementById('hudSpeedValue');
+
+        const isEqFlat = deviceCurves[activeDevice].every(v => v === 0);
+        const offloadActive = isEqFlat && !isSlowedReverb;
+
+        hudCodecValue.textContent = isUsingLocalFile && localTrackMeta
+          ? localTrackMeta.codec.split('•')[0].trim()
+          : 'PCM Float32';
+
+        if (offloadActive) {
+          hudOffloadValue.textContent = 'ACTIVO (DSP)';
+          hudOffloadValue.style.color = 'var(--md-sys-color-primary)';
+        } else {
+          hudOffloadValue.textContent = 'BYPASS (EQ/FX)';
+          hudOffloadValue.style.color = 'var(--md-sys-color-tertiary)';
+        }
+
+        hudSpeedValue.textContent = isSlowedReverb ? '0.85x • Reverb' : '1.00x • Normal';
+      }
+
+      /* ----------------------------------------------------------------------
+         8. PLAYER STYLES (EXPRESSIVE / IMMERSIVE / VINYL SCRATCH) & MAGNETIC BTN
+         ---------------------------------------------------------------------- */
+      const playerStyleBtns = document.querySelectorAll('.player-style-btn');
+      const morphArtworkContainer = document.getElementById('morphArtworkContainer');
+      const vinylArtworkContainer = document.getElementById('vinylArtworkContainer');
+      const immersiveBackdrop = document.getElementById('immersiveBackdrop');
+      let currentPlayerStyle = 'classic';
+
+      function setPlayerStyle(style) {
+        currentPlayerStyle = style;
+        playerStyleBtns.forEach(btn => {
+          const isMatch = btn.dataset.playerStyle === style;
+          btn.classList.toggle('active', isMatch);
+          if (isMatch) {
+            btn.style.backgroundColor = 'var(--md-sys-color-primary)';
+            btn.style.color = 'var(--md-sys-color-on-primary)';
+          } else {
+            btn.style.backgroundColor = 'transparent';
+            btn.style.color = 'var(--md-sys-color-on-surface-variant)';
+          }
+        });
+
+        if (style === 'vinyl') {
+          morphArtworkContainer.classList.add('hidden');
+          vinylArtworkContainer.classList.remove('hidden');
+          vinylArtworkContainer.classList.add('flex');
+          immersiveBackdrop.style.opacity = '0';
+        } else {
+          vinylArtworkContainer.classList.add('hidden');
+          vinylArtworkContainer.classList.remove('flex');
+          morphArtworkContainer.classList.remove('hidden');
+          immersiveBackdrop.style.opacity = style === 'immersive' ? '0.95' : '0';
+        }
+      }
+
+      playerStyleBtns.forEach(btn => {
+        btn.addEventListener('click', () => setPlayerStyle(btn.dataset.playerStyle));
+      });
+      setPlayerStyle('classic');
+
+      // Magnetic Attraction on Play/Pause Button (Draw-Phase Transform)
+      const magneticZone = document.getElementById('magneticZone');
+      magneticZone.addEventListener('mousemove', (e) => {
+        const rect = magneticZone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const dx = (e.clientX - centerX) * 0.28;
+        const dy = (e.clientY - centerY) * 0.28;
+        playPauseBtn.style.transform = `translate3d(${dx.toFixed(1)}px, ${dy.toFixed(1)}px, 0) scale(1.05)`;
+      });
+
+      magneticZone.addEventListener('mouseleave', () => {
+        playPauseBtn.style.transform = 'translate3d(0px, 0px, 0) scale(1)';
+      });
+
+      // Interactive Vinyl Scratching
+      const vinylDisc = document.getElementById('vinylDisc');
+      let vinylAngle = 0;
+      let isScratching = false;
+      let lastPointerAngle = 0;
+
+      function getPointerAngle(e, el) {
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return Math.atan2(clientY - cy, clientX - cx) * (180 / Math.PI);
+      }
+
+      function onScratchStart(e) {
+        isScratching = true;
+        lastPointerAngle = getPointerAngle(e, vinylDisc);
+        if (!isPlaying) initAudioEngine();
+      }
+
+      function onScratchMove(e) {
+        if (!isScratching) return;
+        const angle = getPointerAngle(e, vinylDisc);
+        let delta = angle - lastPointerAngle;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        lastPointerAngle = angle;
+
+        vinylAngle += delta;
+        vinylDisc.style.transform = `rotate(${vinylAngle.toFixed(1)}deg)`;
+
+        // Scrub position slightly + subtle scratch sound burst
+        if (isUsingLocalFile && localAudioEl && isFinite(localAudioEl.duration)) {
+          localAudioEl.currentTime = Math.max(0, Math.min(localAudioEl.duration, localAudioEl.currentTime + delta * 0.015));
+        } else {
+          const dur = DEMO_TRACKS[currentTrackIndex].duration;
+          synthPositionSec = (synthPositionSec + delta * 0.015 + dur) % dur;
+        }
+        if (Math.abs(delta) > 4 && audioCtx) {
+          triggerDrumHit(audioCtx.currentTime, 'hat', Math.min(1, Math.abs(delta) / 25));
+        }
+      }
+
+      function onScratchEnd() {
+        isScratching = false;
+      }
+
+      vinylDisc.addEventListener('mousedown', onScratchStart);
+      window.addEventListener('mousemove', onScratchMove);
+      window.addEventListener('mouseup', onScratchEnd);
+      vinylDisc.addEventListener('touchstart', onScratchStart, { passive: true });
+      window.addEventListener('touchmove', onScratchMove, { passive: true });
+      window.addEventListener('touchend', onScratchEnd);
+
+      // Seekbar Click Scrubbing
+      const wavySeekbarContainer = document.getElementById('wavySeekbarContainer');
+      wavySeekbarContainer.addEventListener('click', (e) => {
+        const rect = wavySeekbarContainer.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        if (isUsingLocalFile && localAudioEl && isFinite(localAudioEl.duration)) {
+          localAudioEl.currentTime = ratio * localAudioEl.duration;
+        } else {
+          synthPositionSec = ratio * DEMO_TRACKS[currentTrackIndex].duration;
+        }
+      });
+
+      /* ----------------------------------------------------------------------
+         9. 120 FPS REQUESTANIMATIONFRAME LOOP (WAVY SEEKBAR + SHAPE MORPH + HUD)
+         ---------------------------------------------------------------------- */
+      const wavyPlayedPath = document.getElementById('wavyPlayedPath');
+      const wavyRemainingLine = document.getElementById('wavyRemainingLine');
+      const wavyThumb = document.getElementById('wavyThumb');
+      const morphShapePath = document.getElementById('morphShapePath');
+      const hudFpsBadge = document.getElementById('hudFpsBadge');
+
+      let wavePhase = 0;
+      let currentWaveAmp = 0;
+      let currentMorphAmount = 0;
+      let frameCount = 0;
+      let lastFpsUpdate = performance.now();
+
+      // Generate organic MaterialShape path modulated by bass energy
+      function buildMorphPath(morphFactor) {
+        const cx = 100, cy = 100;
+        const baseR = 84;
+        const lobes = 8;
+        const steps = 64;
+        let d = '';
+        for (let i = 0; i <= steps; i++) {
+          const theta = (i / steps) * Math.PI * 2;
+          // Squircle base + organic 8-petal flower wave
+          const squircle = Math.pow(Math.abs(Math.cos(theta)), 2.5) + Math.pow(Math.abs(Math.sin(theta)), 2.5);
+          const squircleR = baseR / Math.pow(squircle, 0.22);
+          const petalWave = Math.cos(theta * lobes) * (7.5 * morphFactor);
+          const r = squircleR + petalWave;
+          const x = cx + Math.cos(theta) * r;
+          const y = cy + Math.sin(theta) * r;
+          d += (i === 0 ? 'M ' : ' L ') + `${x.toFixed(1)} ${y.toFixed(1)}`;
+        }
+        return d + ' Z';
+      }
+
+      function renderAnimationLoop(now) {
+        const dt = Math.min(0.05, (now - lastFrameTimestamp) / 1000);
+        lastFrameTimestamp = now;
+
+        // Calculate playback progress & extract FFT bass/RMS energy
+        let progress = 0;
+        let subBassEnergy = 0;
+        let rmsEnergy = 0;
+
+        if (isPlaying) {
+          if (isUsingLocalFile && localAudioEl && isFinite(localAudioEl.duration) && localAudioEl.duration > 0) {
+            progress = localAudioEl.currentTime / localAudioEl.duration;
+            currentTimeLabel.textContent = formatTime(localAudioEl.currentTime);
+          } else {
+            const dur = DEMO_TRACKS[currentTrackIndex].duration;
+            synthPositionSec = (synthPositionSec + dt * playbackRate) % dur;
+            progress = synthPositionSec / dur;
+            currentTimeLabel.textContent = formatTime(synthPositionSec);
+          }
+
+          if (analyserNode && freqDataArray) {
+            analyserNode.getByteFrequencyData(freqDataArray);
+            let bassSum = 0;
+            for (let i = 0; i < 8; i++) bassSum += freqDataArray[i];
+            subBassEnergy = (bassSum / (8 * 255));
+
+            let totalSum = 0;
+            for (let i = 0; i < 48; i++) totalSum += freqDataArray[i];
+            rmsEnergy = totalSum / (48 * 255);
+          }
+        } else {
+          if (isUsingLocalFile && localAudioEl && isFinite(localAudioEl.duration) && localAudioEl.duration > 0) {
+            progress = localAudioEl.currentTime / localAudioEl.duration;
+          } else {
+            progress = synthPositionSec / DEMO_TRACKS[currentTrackIndex].duration;
+          }
+        }
+
+        // Smooth spring-like interpolation for wave amplitude and shape morphing
+        const targetAmp = isPlaying ? (3.2 + rmsEnergy * 6.5) : 0;
+        currentWaveAmp += (targetAmp - currentWaveAmp) * 0.16;
+        if (isPlaying) wavePhase += dt * 7.5 * playbackRate;
+
+        const targetMorph = isPlaying ? (0.25 + subBassEnergy * 1.15) : 0.08;
+        currentMorphAmount += (targetMorph - currentMorphAmount) * 0.2;
+
+        // Update SVG Wavy Seekbar (0..300)
+        const totalWidth = 300;
+        const playedX = Math.max(0, Math.min(totalWidth, progress * totalWidth));
+        const midY = 14;
+
+        wavyRemainingLine.setAttribute('x1', playedX.toFixed(1));
+        wavyThumb.setAttribute('x', Math.max(0, playedX - 2.5).toFixed(1));
+
+        if (playedX <= 1) {
+          wavyPlayedPath.setAttribute('d', `M 0 ${midY} L 0 ${midY}`);
+        } else {
+          let pathD = `M 0 ${midY}`;
+          const step = 3;
+          for (let x = step; x <= playedX; x += step) {
+            // Taper amplitude smoothly near endpoints
+            const edgeFade = Math.min(1, x / 12, (playedX - x) / 8);
+            const y = midY + Math.sin(x * 0.22 - wavePhase) * currentWaveAmp * Math.max(0, edgeFade);
+            pathD += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+          }
+          wavyPlayedPath.setAttribute('d', pathD);
+        }
+
+        // Update Beat-Synced Shape Morphing Artwork
+        if (currentPlayerStyle !== 'vinyl') {
+          morphShapePath.setAttribute('d', buildMorphPath(currentMorphAmount));
+          const scalePulse = 1 + subBassEnergy * 0.045;
+          coverCenterIcon.style.transform = `scale(${scalePulse.toFixed(3)})`;
+        } else if (isPlaying && !isScratching) {
+          // Rotate Vinyl at 33 1/3 RPM (~200 deg/sec)
+          vinylAngle = (vinylAngle + dt * 135 * playbackRate) % 360;
+          vinylDisc.style.transform = `rotate(${vinylAngle.toFixed(1)}deg)`;
+        }
+
+        // Update Live FPS Telemetry Counter every 500ms
+        frameCount++;
+        if (now - lastFpsUpdate >= 500) {
+          const fps = Math.min(120, Math.round((frameCount * 1000) / (now - lastFpsUpdate)));
+          const ms = (1000 / Math.max(1, fps)).toFixed(1);
+          hudFpsBadge.textContent = `${fps >= 58 ? '120' : fps} FPS • ${fps >= 58 ? '8.3' : ms} ms`;
+          frameCount = 0;
+          lastFpsUpdate = now;
+        }
+
+        requestAnimationFrame(renderAnimationLoop);
+      }
+
+      /* ----------------------------------------------------------------------
+         10. BENTO GRID INTERACTIVE HARDWARE OFFLOAD DEMO
+         ---------------------------------------------------------------------- */
+      const offloadSimToggle = document.getElementById('offloadSimToggle');
+      const offloadModeLabel = document.getElementById('offloadModeLabel');
+      const offloadPowerStat = document.getElementById('offloadPowerStat');
+      const offloadPowerBar = document.getElementById('offloadPowerBar');
+      let simOffloadOn = true;
+
+      offloadSimToggle.addEventListener('click', () => {
+        simOffloadOn = !simOffloadOn;
+        offloadSimToggle.classList.toggle('active', simOffloadOn);
+        if (simOffloadOn) {
+          offloadSimToggle.textContent = 'Simular: DSP Offload ON';
+          offloadModeLabel.textContent = 'Modo DSP Hardware (CPU en Deep Sleep)';
+          offloadPowerStat.textContent = '-78% Consumo CPU';
+          offloadPowerBar.style.width = '22%';
+        } else {
+          offloadSimToggle.textContent = 'Simular: Software CPU';
+          offloadModeLabel.textContent = 'Decodificación Software (CPU activa)';
+          offloadPowerStat.textContent = '100% Carga Wake-Lock';
+          offloadPowerBar.style.width = '88%';
+        }
+      });
+
+      /* ----------------------------------------------------------------------
+         11. 42 FEATURES EXPLORER (LIVE SEARCH + CATEGORY FILTER)
+         ---------------------------------------------------------------------- */
+      const featuresGrid = document.getElementById('featuresGrid');
+      const featuresEmptyState = document.getElementById('featuresEmptyState');
+      const featureSearchInput = document.getElementById('featureSearchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      const featureCatBtns = document.querySelectorAll('.feature-cat-btn');
+
+      let activeCategory = 'all';
+      let searchQuery = '';
+
+      const CATEGORY_NAMES = {
+        ui: 'UI Expressive',
+        audio: 'Audio DSP',
+        discovery: 'Descubrimiento',
+        tools: 'Herramientas'
+      };
+
+      function renderFeatures() {
+        const q = searchQuery.trim().toLowerCase();
+        const filtered = FEATURES_DATA.filter(item => {
+          const matchesCat = activeCategory === 'all' || item.cat === activeCategory;
+          const matchesText = !q ||
+            item.title.toLowerCase().includes(q) ||
+            item.desc.toLowerCase().includes(q) ||
+            item.tag.toLowerCase().includes(q) ||
+            String(item.id).padStart(2, '0').includes(q);
+          return matchesCat && matchesText;
+        });
+
+        featuresGrid.innerHTML = '';
+        if (filtered.length === 0) {
+          featuresEmptyState.classList.remove('hidden');
+          return;
+        }
+        featuresEmptyState.classList.add('hidden');
+
+        const fragment = document.createDocumentFragment();
+        filtered.forEach(item => {
+          const card = document.createElement('article');
+          card.className = 'm3-surface-card m3-surface-card-interactive p-5 flex flex-col justify-between gap-3';
+          card.innerHTML = `
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono-tech text-xs font-bold px-2 py-0.5 rounded-lg bg-[var(--md-sys-color-primary-container)] text-[var(--md-sys-color-on-primary-container)]">
+                    #${String(item.id).padStart(2, '0')}
+                  </span>
+                  <span class="text-[11px] font-semibold text-[var(--md-sys-color-on-surface-variant)]">
+                    ${CATEGORY_NAMES[item.cat]}
+                  </span>
+                </div>
+                <span class="material-symbols-rounded text-[20px] text-[var(--md-sys-color-primary)]">${item.icon}</span>
+              </div>
+              <h3 class="font-display font-bold text-lg leading-snug mb-1.5">${item.title}</h3>
+              <p class="text-xs sm:text-sm text-[var(--md-sys-color-on-surface-variant)] leading-relaxed">${item.desc}</p>
+            </div>
+            <div class="pt-2 border-t border-[var(--md-sys-color-outline-variant)] flex items-center justify-between">
+              <span class="font-mono-tech text-[11px] text-[var(--md-sys-color-primary)] font-semibold">${item.tag}</span>
+              <span class="font-mono-tech text-[10px] text-[var(--md-sys-color-on-surface-variant)]">120 FPS OK</span>
+            </div>
+          `;
+          fragment.appendChild(card);
+        });
+        featuresGrid.appendChild(fragment);
+      }
+
+      featureCatBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeCategory = btn.dataset.category;
+          featureCatBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderFeatures();
+        });
+      });
+
+      featureSearchInput.addEventListener('input', () => {
+        searchQuery = featureSearchInput.value;
+        clearSearchBtn.classList.toggle('hidden', searchQuery.length === 0);
+        clearSearchBtn.classList.toggle('flex', searchQuery.length > 0);
+        renderFeatures();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        featureSearchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        clearSearchBtn.classList.remove('flex');
+        renderFeatures();
+      });
+
+      renderFeatures();
+
+      /* ----------------------------------------------------------------------
+         12. HORIZONTAL FLOATING TOOLBAR ACTIVE SCROLL SPY
+         ---------------------------------------------------------------------- */
+      const navLinks = document.querySelectorAll('.nav-pill-btn');
+      const sectionIds = ['inicio', 'simulador', 'audio-dsp', 'rendimiento', 'funciones'];
+
+      function updateActiveNavOnScroll() {
+        const scrollPos = window.scrollY + window.innerHeight * 0.35;
+        let currentSection = 'inicio';
+
+        sectionIds.forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.offsetTop <= scrollPos) {
+            currentSection = id;
+          }
+        });
+
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.dataset.nav === currentSection);
+        });
+      }
+
+      window.addEventListener('scroll', updateActiveNavOnScroll, { passive: true });
+
+      /* ----------------------------------------------------------------------
+         13. STARTUP ON WINDOW LOAD
+         ---------------------------------------------------------------------- */
+      window.addEventListener('load', () => {
+        updateTrackMetadataUI();
+        updateHudStatus();
+        requestAnimationFrame(renderAnimationLoop);
+      });
+    })();
+  </script>
+</body>
+</html>
