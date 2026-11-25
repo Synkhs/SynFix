@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="docs/assets/banner.png" alt="M3 Music Banner" width="100%" />
+<img src="docs/assets/banner.jpeg" alt="M3 Music Banner" width="100%" />
 
 <br /><br />
 
-<img src="docs/assets/logo.png" alt="M3 Music Logo" width="110" height="110" />
+<img src="docs/assets/logo.jpeg" alt="M3 Music Logo" width="110" height="110" />
 
 # M3 Music
 ### Reproductor de Música Local de Alto Rendimiento • 100% Material Design 3 Expressive
