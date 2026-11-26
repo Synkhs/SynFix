@@ -29,11 +29,9 @@ Diseñado bajo una obsesión absoluta por la eficiencia energética y la fluidez
 
 ## Galería de Interfaz
 
-> Coloca tus capturas finales en `docs/screenshots/` para activar la vista previa en cuadrícula:
-
-| Ahora Suena (Expressive) | Ecualizador & Estudio DSP | Biblioteca & Navegación | Herramientas Pro |
+| Ahora Suena (Expressive) | Ecualizador & Estudio DSP | Temas & Personalización | Herramientas Pro |
 | :---: | :---: | :---: | :---: |
-| <img src="docs/screenshots/now_playing.png" width="210" alt="Ahora Suena"/> | <img src="docs/screenshots/equalizer.png" width="210" alt="Ecualizador Pro"/> | <img src="docs/screenshots/library.png" width="210" alt="Biblioteca"/> | <img src="docs/screenshots/pro_tools.png" width="210" alt="Herramientas Pro"/> |
+| <img src="docs/assets/screen_now_playing.jpeg" width="210" alt="Ahora Suena"/> | <img src="docs/assets/screen_equalizer.jpeg" width="210" alt="Ecualizador Pro"/> | <img src="docs/assets/screen_themes.jpeg" width="210" alt="Temas y Personalización"/> | <img src="docs/assets/screen_tools.jpeg" width="210" alt="Herramientas Pro"/> |
 | *Carátula orgánica reactiva al beat y seekbar ondulada* | *10 bandas, Mid/Side Karaoke y perfiles por dispositivo* | *Barra flotante M3 y modo Negro Puro AMOLED* | *Radar 2D BPM, Looper A-B y Fake-FLAC Auditor* |
 
 ---
