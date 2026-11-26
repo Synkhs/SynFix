@@ -6,7 +6,7 @@
 
 <img src="docs/assets/logo.jpeg" alt="M3 Music Logo" width="110" height="110" />
 
-# M3 Music
+# SynFix
 ### Reproductor de Música Local de Alto Rendimiento • 100% Material Design 3 Expressive
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1+-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
