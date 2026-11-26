@@ -29,7 +29,8 @@ enum class LibraryViewLayout(val label: String) {
     LIST_COMPACT("Lista compacta"),
     LIST_COMFORTABLE("Lista cómoda"),
     GRID_2("Cuadrícula 2 col"),
-    GRID_3("Cuadrícula 3 col")
+    GRID_3("Cuadrícula 3 col"),
+    GRID_4("Cuadrícula 4 col")
 }
 
 enum class ArtworkShapeStyle(val label: String) {
@@ -60,7 +61,12 @@ data class AppearanceSettings(
     val beatSyncedMorphEnabled: Boolean = true,
     val proceduralArtFallback: Boolean = true,
     val floatingBubbleEnabled: Boolean = false,
-    val subBassHapticsEnabled: Boolean = false
+    val subBassHapticsEnabled: Boolean = false,
+    val gyroParallaxEnabled: Boolean = true,
+    val shakeToSkipEnabled: Boolean = false,
+    val partyStrobeEnabled: Boolean = false,
+    val partyStrobeTorchEnabled: Boolean = false,
+    val customVibeChipsCsv: String = "Gym,Coche,Focus,Chill"
 )
 
 @Immutable
@@ -79,7 +85,14 @@ data class PlaybackSettings(
     val focusFilterBand: FocusFilterBand = FocusFilterBand.NONE,
     val lofiTapeEnabled: Boolean = false,
     val slowedReverbEnabled: Boolean = false,
-    val adaptiveAmbientEnabled: Boolean = false
+    val adaptiveAmbientEnabled: Boolean = false,
+    val audio8dEnabled: Boolean = false,
+    val audio8dSpeed: Float = 1.0f,
+    val harmonicExciterLevel: Float = 0f,
+    val semitoneShift: Int = 0,
+    val earSafeLimiterEnabled: Boolean = true,
+    val drClippingGuardEnabled: Boolean = false,
+    val turntableBrakeEnabled: Boolean = false
 )
 
 @Immutable
@@ -102,5 +115,6 @@ data class SleepTimerState(
     val isActive: Boolean = false,
     val remainingMs: Long = 0L,
     val stopAfterCurrentTrack: Boolean = false,
+    val remainingTracks: Int = 0,
     val isFadingOut: Boolean = false
 )

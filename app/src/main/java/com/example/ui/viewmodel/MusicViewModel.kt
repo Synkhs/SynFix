@@ -1,6 +1,8 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import android.content.Context
+import android.media.AudioManager
 import android.net.Uri
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -12,14 +14,19 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import com.example.SynFixApplication
 import com.example.data.audit.LibraryAuditor
+import com.example.data.backup.SynFixBackupManager
 import com.example.data.lyrics.LrcParser
+import com.example.data.tags.JunkCleanupCandidate
+import com.example.data.tags.JunkTagCleaner
 import com.example.data.tags.TagUpdateRequest
 import com.example.data.worker.CamelotKeyWorker
 import com.example.data.worker.ReplayGainWorker
 import com.example.domain.model.*
 import com.example.player.*
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.Dispatchers
@@ -71,7 +78,7 @@ data class EqualizerUiState(
     val customPresets: ImmutableList<EqualizerPreset> = persistentListOf(),
     val currentOutput: AudioOutputType = AudioOutputType.SPEAKER,
     val autoOutputProfile: Boolean = false,
-    val devicePresetMap: Map<AudioOutputType, String> = emptyMap(),
+    val devicePresetMap: ImmutableMap<AudioOutputType, String> = persistentMapOf(),
     val usingDynamicsProcessing: Boolean = false
 )
 
@@ -131,11 +138,54 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     val sleepTimerState: StateFlow<SleepTimerState> = PlaybackRuntimeCoordinator.sleepTimerState
     val abLoopState: StateFlow<AbLoopState> = PlaybackRuntimeCoordinator.abLoopState
     val pipelineTelemetry: StateFlow<AudioPipelineTelemetry> = PlaybackRuntimeCoordinator.pipelineTelemetry
+    val drTelemetry: StateFlow<DrClippingTelemetry> = PlaybackRuntimeCoordinator.drTelemetry
     val adaptiveGainDb: StateFlow<Float> = audioEngine.adaptiveGainDb
     val partySyncState: StateFlow<PartySyncState> = app.partySyncEngine.state
 
     val subBassEnergy: StateFlow<Float> = app.visualizerController.subBassEnergy
     val rmsAmplitude: StateFlow<Float> = app.visualizerController.rmsAmplitude
+
+    // Phase 8 StateFlows
+    val ambienceMixState: StateFlow<AmbienceMixState> = preferences.ambienceMixState
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AmbienceMixState())
+    val pinnedQueueIds: StateFlow<Set<Long>> = preferences.pinnedQueueIds
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+    val gyroTiltX: StateFlow<Float> = app.sensorController.tiltX
+    val gyroTiltY: StateFlow<Float> = app.sensorController.tiltY
+    val partyStrobePulse: StateFlow<Float> = app.partyStrobeController.strobePulse
+    val ambienceStandaloneRunning: StateFlow<Boolean> = app.ambienceStandaloneEngine.isStandaloneRunning
+    val qrServerState: StateFlow<QrServerState> = app.localQrWebServer.state
+    val connectedBtDevice: StateFlow<Pair<String, String>?> = app.btProfileManager.connectedDevice
+
+    val trophies: StateFlow<ImmutableList<TrophyItem>> = repository.trophies
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+    val bluetoothProfiles: StateFlow<ImmutableList<BluetoothMacProfile>> = repository.bluetoothProfiles
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+
+    private val _autoEqProfiles = MutableStateFlow<ImmutableList<AutoEqProfile>>(persistentListOf())
+    val autoEqProfiles: StateFlow<ImmutableList<AutoEqProfile>> = _autoEqProfiles.asStateFlow()
+
+    private val _activeVibeFilter = MutableStateFlow<String?>(null)
+    val activeVibeFilter: StateFlow<String?> = _activeVibeFilter.asStateFlow()
+
+    private val _versionStackEnabled = MutableStateFlow(false)
+    val versionStackEnabled: StateFlow<Boolean> = _versionStackEnabled.asStateFlow()
+
+    private val _junkCleanupCandidates = MutableStateFlow<ImmutableList<JunkCleanupCandidate>>(persistentListOf())
+    val junkCleanupCandidates: StateFlow<ImmutableList<JunkCleanupCandidate>> = _junkCleanupCandidates.asStateFlow()
+
+    private val _artistChainPool = MutableStateFlow<ImmutableList<Song>>(persistentListOf())
+    val artistChainPool: StateFlow<ImmutableList<Song>> = _artistChainPool.asStateFlow()
+
+    private var pocketDjEngine: PocketDjEngine? = null
+    private val _pocketDjState = MutableStateFlow(PocketDjState())
+    val pocketDjState: StateFlow<PocketDjState> = _pocketDjState.asStateFlow()
+
+    private var blindTestEngine: BlindTestAbEngine? = null
+    private val _blindTestState = MutableStateFlow(BlindTestAbState())
+    val blindTestState: StateFlow<BlindTestAbState> = _blindTestState.asStateFlow()
+
+    private var isLifecycleResumed = false
 
     val wrappedStats: StateFlow<WrappedStats> = repository.wrappedStats
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WrappedStats())
@@ -181,12 +231,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val filteredSongsFlow = combine(
         repository.allSongs,
-        _searchQuery
-    ) { songs, query ->
-        if (query.isBlank()) songs
+        _searchQuery,
+        _activeVibeFilter
+    ) { songs, query, vibe ->
+        var base = songs
+        if (!vibe.isNullOrBlank()) {
+            base = base.filter { song ->
+                song.vibeTags.split(',').any { it.trim().equals(vibe, ignoreCase = true) }
+            }.toImmutableList()
+        }
+        if (query.isBlank()) base
         else {
             val q = query.trim()
-            songs.filter {
+            base.filter {
                 it.title.contains(q, ignoreCase = true) ||
                     it.artist.contains(q, ignoreCase = true) ||
                     it.album.contains(q, ignoreCase = true)
@@ -304,6 +361,19 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, EqualizerUiState())
 
+    val trackVersionGroups: StateFlow<ImmutableList<TrackVersionGroup>> = filteredSongsFlow
+        .map { JunkTagCleaner.groupByVersionStack(it) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), persistentListOf())
+
+    val dspBatteryStats: StateFlow<DspBatteryStats> = combine(
+        repository.allSongs,
+        preferences.offloadDspSeconds
+    ) { songs, (offloadSec, dspSec) ->
+        repository.buildDspBatteryStats(songs, offloadSec, dspSec)
+    }.flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DspBatteryStats())
+
     private var songLookupMap: Map<Long, Song> = emptyMap()
 
     init {
@@ -312,11 +382,39 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         observeEqualizerAndAudioBalance()
         observeOutputDeviceAutoSwitch()
         observeVisualizerAndHaptics()
+        observeSensorsAndStrobe()
         observeWakeUpTrigger()
         startPositionTicker()
         refreshZeroPlayStreak()
         loadDefaultThrowback()
         loadDefaultContextTimeMix()
+        loadAutoEqProfiles()
+    }
+
+    private fun observeSensorsAndStrobe() {
+        viewModelScope.launch {
+            combine(
+                appearanceSettings,
+                _playerState.map { it.isPlaying }.distinctUntilChanged()
+            ) { appSettings, playing ->
+                appSettings to playing
+            }.collect { (appSettings, playing) ->
+                app.sensorController.configure(
+                    gyroParallaxEnabled = appSettings.gyroParallaxEnabled,
+                    shakeToSkipEnabled = appSettings.shakeToSkipEnabled,
+                    onShake = {
+                        skipNext()
+                        _snackbarMessage.tryEmit("Shake-to-Skip: Siguiente pista")
+                    }
+                )
+                app.partyStrobeController.updateConfig(
+                    enabled = appSettings.partyStrobeEnabled,
+                    useTorch = appSettings.partyStrobeTorchEnabled,
+                    playing = playing,
+                    resumed = isLifecycleResumed
+                )
+            }
+        }
     }
 
     private fun observeVisualizerAndHaptics() {
@@ -324,12 +422,15 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 _playerState.map { it.isPlaying }.distinctUntilChanged(),
                 appearanceSettings.map { it.beatSyncedMorphEnabled }.distinctUntilChanged(),
-                appearanceSettings.map { it.subBassHapticsEnabled }.distinctUntilChanged()
-            ) { playing, morphEnabled, hapticsEnabled ->
-                Triple(playing, morphEnabled, hapticsEnabled)
-            }.collect { (playing, morphEnabled, hapticsEnabled) ->
-                app.visualizerController.updatePlaybackState(playing, morphEnabled || hapticsEnabled)
-                app.subBassHapticEngine.updateState(hapticsEnabled, playing)
+                appearanceSettings.map { it.subBassHapticsEnabled }.distinctUntilChanged(),
+                appearanceSettings.map { it.partyStrobeEnabled }.distinctUntilChanged()
+            ) { playing, morphEnabled, hapticsEnabled, strobeEnabled ->
+                listOf(playing, morphEnabled, hapticsEnabled, strobeEnabled)
+            }.collect { flags ->
+                val playing = flags[0]
+                val needsVisualizer = flags[1] || flags[2] || flags[3]
+                app.visualizerController.updatePlaybackState(playing, needsVisualizer)
+                app.subBassHapticEngine.updateState(flags[2], playing)
             }
         }
     }
@@ -422,7 +523,8 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
                     venueReverb = playback.venueReverbPreset,
                     focusFilter = playback.focusFilterBand,
                     slowedReverb = playback.slowedReverbEnabled,
-                    adaptiveAmbient = playback.adaptiveAmbientEnabled
+                    adaptiveAmbient = playback.adaptiveAmbientEnabled,
+                    earSafeLimiter = playback.earSafeLimiterEnabled
                 )
             }
         }
@@ -489,6 +591,12 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val seed = PaletteExtractor.extractSeedColor(app, song.artworkUri)
             _albumSeedColor.value = seed
+        }
+        // #69 Energy Heatmap Wavy Progress: compute & cache 64-float heatmap if missing
+        if (song.energyHeatmap.size < 64) {
+            viewModelScope.launch {
+                repository.ensureSongEnergyAnalyzed(song)
+            }
         }
     }
 
@@ -567,6 +675,13 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun togglePlayPause() {
+        if (playbackSettings.value.turntableBrakeEnabled) {
+            val handler = PlaybackRuntimeCoordinator.onRequestTurntableTogglePlayPause
+            if (handler != null) {
+                handler.invoke()
+                return
+            }
+        }
         val controller = playerConnection.mediaController.value ?: return
         if (controller.isPlaying) controller.pause() else controller.play()
     }
@@ -1154,8 +1269,326 @@ class MusicViewModel(application: Application) : AndroidViewModel(application) {
         _snackbarMessage.tryEmit(message)
     }
 
+    // --- Phase 8 Actions (#43-#85) ---
+
+    fun setLifecycleResumed(resumed: Boolean) {
+        isLifecycleResumed = resumed
+        app.sensorController.setLifecycleResumed(resumed)
+        if (!resumed) {
+            app.sharedAuxPlayer.stopAndRelease()
+        }
+        val appSet = appearanceSettings.value
+        app.partyStrobeController.updateConfig(
+            enabled = appSet.partyStrobeEnabled,
+            useTorch = appSet.partyStrobeTorchEnabled,
+            playing = _playerState.value.isPlaying,
+            resumed = resumed
+        )
+    }
+
+    // #43 Elastic Pull-to-Shuffle
+    fun elasticShufflePlay() {
+        val pool = libraryState.value.songs
+        if (pool.isEmpty()) return
+        val shuffled = pool.shuffled()
+        playSongFromList(shuffled.first(), shuffled)
+        _snackbarMessage.tryEmit("Cola aleatoria rápida (${shuffled.size} pistas)")
+    }
+
+    // #46 Edge Liquid Volume Pill
+    fun setMusicVolumeFraction(fraction: Float) {
+        val am = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val target = (fraction.coerceIn(0f, 1f) * max).toInt().coerceIn(0, max)
+        runCatching { am.setStreamVolume(AudioManager.STREAM_MUSIC, target, 0) }
+    }
+
+    fun getMusicVolumeFraction(): Float {
+        val am = app.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+        val cur = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+        return (cur.toFloat() / max.toFloat()).coerceIn(0f, 1f)
+    }
+
+    // #48 Pinch-to-Morph Library Grid
+    fun morphLibraryLayoutByPinch(zoomIn: Boolean) {
+        val cycle = listOf(
+            LibraryViewLayout.LIST_COMPACT,
+            LibraryViewLayout.GRID_2,
+            LibraryViewLayout.GRID_3,
+            LibraryViewLayout.GRID_4
+        )
+        val current = appearanceSettings.value.libraryLayout
+        val idx = cycle.indexOf(current).let { if (it < 0) 0 else it }
+        // Pinch out (zoomIn=true) -> fewer bigger items or pinch in -> denser grid (4 col)
+        val nextIdx = if (zoomIn) (idx - 1).coerceAtLeast(0) else (idx + 1).coerceAtMost(cycle.lastIndex)
+        val target = cycle[nextIdx]
+        if (target != current) {
+            updateAppearance { it.copy(libraryLayout = target) }
+        }
+    }
+
+    // #51 Hold-to-Peek Scrubber
+    fun startHoldToPeek(song: Song, fraction: Float) {
+        app.sharedAuxPlayer.startPeek(song, fraction)
+    }
+
+    fun scrubHoldToPeek(song: Song, fraction: Float) {
+        app.sharedAuxPlayer.scrubPeek(song, fraction)
+    }
+
+    fun stopHoldToPeek() {
+        app.sharedAuxPlayer.stopAndRelease()
+    }
+
+    // #52 Focus & Sleep Ambience Mixer
+    fun updateAmbienceMix(state: AmbienceMixState) {
+        viewModelScope.launch { preferences.updateAmbienceMix(state) }
+    }
+
+    // #54 AutoEQ Headphone Calibration
+    fun loadAutoEqProfiles() {
+        viewModelScope.launch {
+            _autoEqProfiles.value = app.autoEqRepository.getProfiles()
+        }
+    }
+
+    fun applyAutoEqProfile(profile: AutoEqProfile) {
+        val current = equalizerState.value
+        viewModelScope.launch {
+            preferences.saveEqState(
+                enabled = true,
+                presetId = profile.id,
+                bandsDb = profile.bandsDb,
+                preampDb = profile.preampDb,
+                bassBoost = current.bassBoost,
+                virtualizer = current.virtualizer
+            )
+            _snackbarMessage.tryEmit("AutoEQ aplicado: ${profile.model}")
+        }
+    }
+
+    // #71 Custom Vibe Chips
+    fun setVibeFilter(vibe: String?) {
+        _activeVibeFilter.value = if (_activeVibeFilter.value == vibe) null else vibe
+    }
+
+    fun toggleSongVibeTag(song: Song, vibe: String) {
+        val current = song.vibeTags.split(',')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .toMutableList()
+        val existingIdx = current.indexOfFirst { it.equals(vibe, ignoreCase = true) }
+        if (existingIdx >= 0) current.removeAt(existingIdx) else current.add(vibe.trim())
+        viewModelScope.launch {
+            repository.updateSongVibeTags(song.id, current.joinToString(","))
+            repository.evaluateAndUnlockTrophies()
+        }
+    }
+
+    fun addCustomVibeChip(chip: String) {
+        val clean = chip.trim().replace(",", "")
+        if (clean.isBlank()) return
+        updateAppearance { current ->
+            val list = current.customVibeChipsCsv.split(',').map { it.trim() }.filter { it.isNotBlank() }.toMutableList()
+            if (list.none { it.equals(clean, ignoreCase = true) }) list.add(clean)
+            current.copy(customVibeChipsCsv = list.joinToString(","))
+        }
+    }
+
+    // #72 Track Version Stack
+    fun setVersionStackEnabled(enabled: Boolean) {
+        _versionStackEnabled.value = enabled
+    }
+
+    // #73 Pinned Queue Anchors
+    fun togglePinQueueSong(songId: Long) {
+        val current = pinnedQueueIds.value.toMutableSet()
+        val pinned = if (current.contains(songId)) {
+            current.remove(songId)
+            false
+        } else {
+            current.add(songId)
+            true
+        }
+        viewModelScope.launch { preferences.setPinnedQueueIds(current) }
+        _snackbarMessage.tryEmit(if (pinned) "Pista fijada en su posición" else "Anclaje quitado")
+    }
+
+    fun smartShuffleQueuePreservingPins() {
+        val controller = playerConnection.mediaController.value ?: return
+        val queue = _playerState.value.queue
+        if (queue.size <= 2) return
+        val pinned = pinnedQueueIds.value
+        val currentSongId = _playerState.value.currentSong?.id
+
+        val fixedIndices = HashMap<Int, Song>()
+        val movable = ArrayList<Song>()
+        queue.forEachIndexed { idx, s ->
+            if (s.id in pinned || s.id == currentSongId) {
+                fixedIndices[idx] = s
+            } else {
+                movable.add(s)
+            }
+        }
+        movable.shuffle()
+        var mCursor = 0
+        val rebuilt = ArrayList<Song>(queue.size)
+        for (i in queue.indices) {
+            val fixed = fixedIndices[i]
+            if (fixed != null) rebuilt.add(fixed) else rebuilt.add(movable[mCursor++])
+        }
+        val pos = controller.currentPosition
+        val newCurrentIdx = rebuilt.indexOfFirst { it.id == currentSongId }.coerceAtLeast(0)
+        controller.setMediaItems(rebuilt.map { it.toMediaItem() }, newCurrentIdx, pos)
+        controller.prepare()
+        if (_playerState.value.isPlaying) controller.play()
+        syncStateFromController(controller)
+        _snackbarMessage.tryEmit("Cola mezclada respetando ${pinned.size} ancla(s)")
+    }
+
+    // #83 Track-Count Sleep Timer
+    fun startTrackSleepTimer(trackCount: Int) {
+        PlaybackRuntimeCoordinator.startTrackSleepTimer(trackCount)
+        _snackbarMessage.tryEmit("Se detendrá tras $trackCount pista(s)")
+    }
+
+    // #62 & #65 Energy / Beat Peaks helper
+    suspend fun ensureSongEnergyAnalyzed(song: Song): Song = repository.ensureSongEnergyAnalyzed(song)
+
+    // #66 Artist Link Chain
+    fun loadArtistChainCandidates(currentSong: Song, excludeIds: Set<Long>) {
+        viewModelScope.launch {
+            _artistChainPool.value = repository.findArtistChainCandidates(currentSong, excludeIds)
+        }
+    }
+
+    // #68 Trophy Cabinet
+    fun refreshTrophies() {
+        viewModelScope.launch { repository.evaluateAndUnlockTrophies() }
+    }
+
+    // #76 Junk Tag & URL Stripper
+    fun scanJunkTagCandidates() {
+        viewModelScope.launch(Dispatchers.Default) {
+            _junkCleanupCandidates.value = JunkTagCleaner.findCleanupCandidates(libraryState.value.songs)
+        }
+    }
+
+    fun applyBulkJunkTagCleanup() {
+        val candidates = _junkCleanupCandidates.value
+        if (candidates.isEmpty()) return
+        viewModelScope.launch {
+            val cleaned = repository.bulkCleanJunkTags(candidates)
+            _junkCleanupCandidates.value = persistentListOf()
+            _snackbarMessage.tryEmit("Limpieza atómica completada: $cleaned pistas")
+        }
+    }
+
+    // #82 Per-MAC Bluetooth Auto-Profile
+    fun saveBluetoothProfile(profile: BluetoothMacProfile) {
+        viewModelScope.launch {
+            repository.saveBluetoothProfile(profile)
+            app.btProfileManager.applyProfileNow(profile)
+            _snackbarMessage.tryEmit("Perfil BT guardado para ${profile.deviceName}")
+        }
+    }
+
+    fun deleteBluetoothProfile(mac: String) {
+        viewModelScope.launch { repository.deleteBluetoothProfile(mac) }
+    }
+
+    // #80 Local QR Web Server
+    fun startQrWebServer() {
+        app.localQrWebServer.start(
+            songsProvider = { libraryState.value.songs },
+            onFileUploaded = { scanMusic() }
+        )
+    }
+
+    fun stopQrWebServer() {
+        app.localQrWebServer.stop()
+    }
+
+    // #81 Backup .synfix Export / Import
+    fun exportSynFixBackup(uri: Uri) {
+        viewModelScope.launch {
+            val snapshot = repository.buildBackupSnapshot(appearanceSettings.value.customVibeChipsCsv)
+            val result = SynFixBackupManager.exportToUri(app, uri, snapshot)
+            result.onSuccess { bytes ->
+                _snackbarMessage.tryEmit("Backup .synfix exportado (${bytes / 1024} KB)")
+            }.onFailure {
+                _snackbarMessage.tryEmit("Error al exportar backup .synfix")
+            }
+        }
+    }
+
+    fun importSynFixBackup(uri: Uri) {
+        viewModelScope.launch {
+            val result = SynFixBackupManager.importFromUri(app, uri)
+            result.onSuccess { snapshot ->
+                val count = repository.restoreBackupSnapshot(snapshot)
+                if (snapshot.customVibeChipsCsv.isNotBlank()) {
+                    updateAppearance { it.copy(customVibeChipsCsv = snapshot.customVibeChipsCsv) }
+                }
+                _snackbarMessage.tryEmit("Backup restaurado ($count elementos)")
+            }.onFailure {
+                _snackbarMessage.tryEmit("Archivo .synfix inválido o corrupto")
+            }
+        }
+    }
+
+    // #44 & #55 Pocket DJ & Acapella Mashup Lab (on-demand lifecycle)
+    private fun ensurePocketDj(): PocketDjEngine {
+        return pocketDjEngine ?: PocketDjEngine(app).also { engine ->
+            pocketDjEngine = engine
+            viewModelScope.launch {
+                engine.state.collect { _pocketDjState.value = it }
+            }
+        }
+    }
+
+    fun pocketDjLoadA(song: Song) = ensurePocketDj().loadDeckA(song)
+    fun pocketDjLoadB(song: Song) = ensurePocketDj().loadDeckB(song)
+    fun pocketDjToggleA() = ensurePocketDj().toggleDeckA()
+    fun pocketDjToggleB() = ensurePocketDj().toggleDeckB()
+    fun pocketDjSeekA(fraction: Float) = ensurePocketDj().seekDeckA(fraction)
+    fun pocketDjSeekB(fraction: Float) = ensurePocketDj().seekDeckB(fraction)
+    fun pocketDjCrossfade(value: Float) = ensurePocketDj().setCrossfader(value)
+    fun pocketDjMashup(enabled: Boolean) = ensurePocketDj().setAcapellaMashup(enabled)
+    fun pocketDjSyncBpm(enabled: Boolean) = ensurePocketDj().setSyncBpm(enabled)
+    fun releasePocketDj() {
+        pocketDjEngine?.releaseAll()
+        pocketDjEngine = null
+        _pocketDjState.value = PocketDjState()
+    }
+
+    // #77 Blind Test A/B (on-demand lifecycle)
+    private fun ensureBlindTest(): BlindTestAbEngine {
+        return blindTestEngine ?: BlindTestAbEngine(app).also { engine ->
+            blindTestEngine = engine
+            viewModelScope.launch {
+                engine.state.collect { _blindTestState.value = it }
+            }
+        }
+    }
+
+    fun startBlindTest(first: Song, second: Song) = ensureBlindTest().startTest(first, second)
+    fun switchBlindTestSlot(slot: String) = ensureBlindTest().switchTo(slot)
+    fun toggleBlindTestPlayPause() = ensureBlindTest().togglePlayPause()
+    fun submitBlindTestGuess(slot: String) = ensureBlindTest().submitGuess(slot)
+    fun releaseBlindTest() {
+        blindTestEngine?.releaseAll()
+        blindTestEngine = null
+        _blindTestState.value = BlindTestAbState()
+    }
+
     override fun onCleared() {
         pomodoroJob?.cancel()
+        releasePocketDj()
+        releaseBlindTest()
+        app.sharedAuxPlayer.stopAndRelease()
+        app.localQrWebServer.stop()
         playerConnection.release()
         super.onCleared()
     }

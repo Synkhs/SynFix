@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.example.domain.model.Song
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 
 @Entity(
     tableName = "songs",
@@ -45,7 +47,12 @@ data class SongEntity(
     val sampleRateHz: Int = 44100,
     val camelotKey: String = "8A",
     val isHidden: Boolean = false,
-    val artistAlias: String? = null
+    val artistAlias: String? = null,
+    val vibeTags: String = "",
+    val lastPositionMs: Long = 0L,
+    val energyHeatmapCsv: String = "",
+    val peakMapCsv: String = "",
+    val dropTimestampMs: Long = 0L
 ) {
     fun toDomain(): Song = Song(
         id = id,
@@ -77,6 +84,19 @@ data class SongEntity(
         sampleRateHz = sampleRateHz,
         camelotKey = camelotKey.ifBlank { "8A" },
         isHidden = isHidden,
-        artistAlias = artistAlias
+        artistAlias = artistAlias,
+        vibeTags = vibeTags,
+        lastPositionMs = lastPositionMs,
+        energyHeatmap = if (energyHeatmapCsv.isBlank()) {
+            persistentListOf()
+        } else {
+            energyHeatmapCsv.split(',').mapNotNull { it.toFloatOrNull() }.toImmutableList()
+        },
+        peakTimestampsMs = if (peakMapCsv.isBlank()) {
+            persistentListOf()
+        } else {
+            peakMapCsv.split(',').mapNotNull { it.toIntOrNull() }.toImmutableList()
+        },
+        dropTimestampMs = dropTimestampMs
     )
 }

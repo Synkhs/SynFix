@@ -50,7 +50,17 @@ fun EqualizerScreen(
     val playbackSettings by viewModel.playbackSettings.collectAsStateWithLifecycle()
     val telemetry by viewModel.pipelineTelemetry.collectAsStateWithLifecycle()
     val adaptiveGainDb by viewModel.adaptiveGainDb.collectAsStateWithLifecycle()
+    val drTelemetry by viewModel.drTelemetry.collectAsStateWithLifecycle()
+    val autoEqProfiles by viewModel.autoEqProfiles.collectAsStateWithLifecycle()
+    val ambienceMixState by viewModel.ambienceMixState.collectAsStateWithLifecycle()
+    val ambienceStandalone by viewModel.ambienceStandaloneRunning.collectAsStateWithLifecycle()
+    val bluetoothProfiles by viewModel.bluetoothProfiles.collectAsStateWithLifecycle()
+    val connectedBtDevice by viewModel.connectedBtDevice.collectAsStateWithLifecycle()
+
     var showSavePresetDialog by remember { mutableStateOf(false) }
+    var showAutoEqSheet by remember { mutableStateOf(false) }
+    var showAmbienceSheet by remember { mutableStateOf(false) }
+    var showBtProfilesDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     var hasMicPerm by remember {
@@ -694,6 +704,216 @@ fun EqualizerScreen(
                 }
             }
 
+            // Phase 8 Master DSP, Calibración & Efectos (#52-#60, #82)
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Calibración Pro & Efectos Espaciales", style = MaterialTheme.typography.titleSmall)
+
+                    // #54 AutoEQ, #52 Ambience Mixer, #82 BT MAC Profiles quick actions
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilledTonalButton(
+                            onClick = { showAutoEqSheet = true },
+                            modifier = Modifier.testTag("open_autoeq_button")
+                        ) {
+                            Icon(Icons.Filled.Headphones, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("AutoEQ (${autoEqProfiles.size})")
+                        }
+
+                        FilledTonalButton(
+                            onClick = { showAmbienceSheet = true },
+                            modifier = Modifier.testTag("open_ambience_button")
+                        ) {
+                            Icon(Icons.Filled.WaterDrop, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (ambienceMixState.enabled) "Ambiente ON" else "Ambiente")
+                        }
+
+                        OutlinedButton(
+                            onClick = { showBtProfilesDialog = true },
+                            modifier = Modifier.testTag("open_bt_mac_profiles_button")
+                        ) {
+                            Icon(Icons.Filled.BluetoothAudio, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Perfiles BT MAC")
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    // #53 Audio 8D Orbital
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Audio 8D Orbital (Binaural)", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Panorámica HRTF continua con LUT 512 sin asignaciones en audio",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = playbackSettings.audio8dEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updatePlaybackSettings { it.copy(audio8dEnabled = enabled) }
+                            }
+                        )
+                    }
+                    if (playbackSettings.audio8dEnabled) {
+                        LabeledSliderRow(
+                            label = "Velocidad de órbita 8D",
+                            valueText = String.format("%.1fx", playbackSettings.audio8dSpeed),
+                            value = playbackSettings.audio8dSpeed,
+                            valueRange = 0.3f..2.5f,
+                            enabled = true,
+                            onValueChange = { spd ->
+                                viewModel.updatePlaybackSettings { it.copy(audio8dSpeed = spd) }
+                            }
+                        )
+                    }
+
+                    // #57 Harmonic Bass Exciter
+                    LabeledSliderRow(
+                        label = "Excitador Armónico de Graves",
+                        valueText = "${(playbackSettings.harmonicExciterLevel * 100).roundToInt()}%",
+                        value = playbackSettings.harmonicExciterLevel,
+                        valueRange = 0f..1f,
+                        enabled = true,
+                        onValueChange = { lvl ->
+                            viewModel.updatePlaybackSettings { it.copy(harmonicExciterLevel = lvl) }
+                        }
+                    )
+
+                    // #58 Semitone Pitch Shifter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Transposición por Semitonos", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Ajuste exacto sin alterar el tempo (${if (playbackSettings.semitoneShift > 0) "+" else ""}${playbackSettings.semitoneShift} st)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            FilledTonalIconButton(
+                                onClick = {
+                                    val next = (playbackSettings.semitoneShift - 1).coerceIn(-6, 6)
+                                    viewModel.updatePlaybackSettings { it.copy(semitoneShift = next) }
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Filled.Remove, contentDescription = "-1 semitono", modifier = Modifier.size(18.dp))
+                            }
+                            Text(
+                                text = "${if (playbackSettings.semitoneShift > 0) "+" else ""}${playbackSettings.semitoneShift}",
+                                style = ExpressiveTypography.MonoTimecode,
+                                modifier = Modifier.widthIn(min = 28.dp),
+                                textAlign = TextAlign.Center
+                            )
+                            FilledTonalIconButton(
+                                onClick = {
+                                    val next = (playbackSettings.semitoneShift + 1).coerceIn(-6, 6)
+                                    viewModel.updatePlaybackSettings { it.copy(semitoneShift = next) }
+                                },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(Icons.Filled.Add, contentDescription = "+1 semitono", modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+
+                    // #56 Ear-Safe SPL Limiter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Limitador Seguro Ear-Safe (-1.5 dB)", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Protege tus oídos con limitador de techo por hardware DSP",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = playbackSettings.earSafeLimiterEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updatePlaybackSettings { it.copy(earSafeLimiterEnabled = enabled) }
+                            }
+                        )
+                    }
+
+                    // #59 Live DR & Clipping Guard
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Medidor DR & Clipping Guard", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = if (playbackSettings.drClippingGuardEnabled) {
+                                    "DR estimado: ${String.format("%.1f dB", drTelemetry.estimatedDrDb)} • " +
+                                        if (drTelemetry.clippingGuardActive) "Atenuando picos" else "Señal limpia"
+                                } else {
+                                    "Protección soft-knee en tiempo real (desactivado preserva HW Offload)"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (drTelemetry.clippingGuardActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = playbackSettings.drClippingGuardEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updatePlaybackSettings { it.copy(drClippingGuardEnabled = enabled) }
+                            }
+                        )
+                    }
+
+                    // #60 Turntable Brake Stop/Start
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Freno Vinilo Turntable (220ms)", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Desaceleración suave al pausar y arranque progresivo al reanudar",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = playbackSettings.turntableBrakeEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updatePlaybackSettings { it.copy(turntableBrakeEnabled = enabled) }
+                            }
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -720,6 +940,35 @@ fun EqualizerScreen(
             dismissButton = {
                 TextButton(onClick = { showSavePresetDialog = false }) { Text("Cancelar") }
             }
+        )
+    }
+
+    if (showAutoEqSheet) {
+        AutoEqPickerSheet(
+            profiles = autoEqProfiles,
+            activePresetId = eqState.activePresetId,
+            onSelectProfile = viewModel::applyAutoEqProfile,
+            onDismiss = { showAutoEqSheet = false }
+        )
+    }
+
+    if (showAmbienceSheet) {
+        AmbienceMixerSheet(
+            state = ambienceMixState,
+            standaloneRunning = ambienceStandalone,
+            onUpdate = viewModel::updateAmbienceMix,
+            onDismiss = { showAmbienceSheet = false }
+        )
+    }
+
+    if (showBtProfilesDialog) {
+        BluetoothMacProfilesDialog(
+            connectedDevice = connectedBtDevice,
+            profiles = bluetoothProfiles,
+            presets = allPresets,
+            onSaveProfile = viewModel::saveBluetoothProfile,
+            onDeleteProfile = viewModel::deleteBluetoothProfile,
+            onDismiss = { showBtProfilesDialog = false }
         )
     }
 }

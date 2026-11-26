@@ -3,10 +3,14 @@ package com.example.data.repository
 import android.content.Context
 import android.os.Build
 import android.provider.MediaStore
+import com.example.data.analysis.EnergyAndBeatAnalyzer
 import com.example.data.db.*
+import com.example.data.tags.JunkCleanupCandidate
+import com.example.data.tags.JunkTagCleaner
 import com.example.data.worker.CamelotWheelAnalyzer
 import com.example.domain.model.*
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -22,27 +26,27 @@ class MusicRepository(
 ) {
     val allSongs: Flow<ImmutableList<Song>> = musicDao.getAllSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val hiddenSongs: Flow<ImmutableList<Song>> = musicDao.getHiddenSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val favoriteSongs: Flow<ImmutableList<Song>> = musicDao.getFavoriteSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val mostPlayedSongs: Flow<ImmutableList<Song>> = musicDao.getMostPlayedSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val recentSongs: Flow<ImmutableList<Song>> = musicDao.getRecentSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val neverPlayedSongs: Flow<ImmutableList<Song>> = musicDao.getNeverPlayedSongs()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     val userPlaylists: Flow<ImmutableList<Playlist>> = combine(
         musicDao.getAllPlaylists(),
@@ -62,11 +66,11 @@ class MusicRepository(
                 isSmart = false
             )
         }.toImmutableList()
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(Dispatchers.IO)
 
     val customEqPresets: Flow<ImmutableList<EqualizerPreset>> = musicDao.getCustomEqPresets()
         .map { list -> list.map { it.toDomain() }.toImmutableList() }
-        .flowOn(Dispatchers.Default)
+        .flowOn(Dispatchers.IO)
 
     // #33 Live Local Wrapped & Streaks backed by precalculated Room summary tables
     val wrappedStats: Flow<WrappedStats> = combine(
@@ -81,7 +85,7 @@ class MusicRepository(
             topArtists = artists.map { it.toDomain() }.toImmutableList(),
             topSongs = topSongs.take(5).map { it.toDomain() }.toImmutableList()
         )
-    }.flowOn(Dispatchers.Default)
+    }.flowOn(Dispatchers.IO)
 
     private val _discoveredFolders = MutableStateFlow<List<Pair<String, Int>>>(emptyList())
     val discoveredFolders: StateFlow<List<Pair<String, Int>>> = _discoveredFolders.asStateFlow()
@@ -220,6 +224,18 @@ class MusicRepository(
 
         if (scannedEntities.isNotEmpty()) {
             musicDao.insertSongs(scannedEntities)
+            val collabs = scannedEntities.flatMap { entity ->
+                JunkTagCleaner.extractCollaborators(entity.artist).map { collab ->
+                    TrackCollaborationEntity(
+                        songId = entity.id,
+                        artistNormalized = collab.lowercase(),
+                        artistDisplay = collab
+                    )
+                }
+            }
+            if (collabs.isNotEmpty()) {
+                collabs.chunked(500).forEach { musicDao.insertCollaborations(it) }
+            }
         }
 
         val staleIds = existingMap.keys.filter { !validIds.contains(it) }
@@ -229,6 +245,7 @@ class MusicRepository(
             }
         }
 
+        evaluateAndUnlockTrophies()
         validIds.size
     }
 
@@ -414,10 +431,10 @@ class MusicRepository(
     fun getTrackNotesForSong(songId: Long): Flow<ImmutableList<TrackNote>> =
         musicDao.getTrackNotesForSong(songId)
             .map { list -> list.map { it.toDomain() }.toImmutableList() }
-            .flowOn(Dispatchers.Default)
+            .flowOn(Dispatchers.IO)
 
-    suspend fun addTrackNote(songId: Long, timestampMs: Long, noteText: String) {
-        if (noteText.isBlank()) return
+    suspend fun addTrackNote(songId: Long, timestampMs: Long, noteText: String) = withContext(Dispatchers.IO) {
+        if (noteText.isBlank()) return@withContext
         musicDao.insertTrackNote(
             TrackNoteEntity(
                 songId = songId,
@@ -427,18 +444,281 @@ class MusicRepository(
         )
     }
 
-    suspend fun deleteTrackNote(noteId: Long) {
+    suspend fun deleteTrackNote(noteId: Long) = withContext(Dispatchers.IO) {
         musicDao.deleteTrackNote(noteId)
     }
 
-    suspend fun createPlaylist(name: String): Long = musicDao.insertPlaylist(PlaylistEntity(name = name))
-    suspend fun renamePlaylist(playlistId: Long, name: String) = musicDao.renamePlaylist(playlistId, name)
-    suspend fun deletePlaylist(playlist: Playlist) = musicDao.deletePlaylist(PlaylistEntity(playlist.id, playlist.name, playlist.dateCreated))
-    suspend fun addSongToPlaylist(playlistId: Long, songId: Long) = musicDao.insertPlaylistSong(PlaylistSongCrossRef(playlistId, songId))
-    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long) = musicDao.deletePlaylistSong(PlaylistSongCrossRef(playlistId, songId))
+    suspend fun createPlaylist(name: String): Long = withContext(Dispatchers.IO) { musicDao.insertPlaylist(PlaylistEntity(name = name)) }
+    suspend fun renamePlaylist(playlistId: Long, name: String) = withContext(Dispatchers.IO) { musicDao.renamePlaylist(playlistId, name) }
+    suspend fun deletePlaylist(playlist: Playlist) = withContext(Dispatchers.IO) { musicDao.deletePlaylist(PlaylistEntity(playlist.id, playlist.name, playlist.dateCreated)) }
+    suspend fun addSongToPlaylist(playlistId: Long, songId: Long) = withContext(Dispatchers.IO) { musicDao.insertPlaylistSong(PlaylistSongCrossRef(playlistId, songId)) }
+    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long) = withContext(Dispatchers.IO) { musicDao.deletePlaylistSong(PlaylistSongCrossRef(playlistId, songId)) }
     fun getSongsForPlaylist(playlistId: Long): Flow<ImmutableList<Song>> =
-        musicDao.getSongsForPlaylist(playlistId).map { list -> list.map { it.toDomain() }.toImmutableList() }.flowOn(Dispatchers.Default)
+        musicDao.getSongsForPlaylist(playlistId).map { list -> list.map { it.toDomain() }.toImmutableList() }.flowOn(Dispatchers.IO)
 
-    suspend fun saveCustomEqPreset(preset: EqualizerPreset) = musicDao.insertEqPreset(EqualizerPresetEntity.fromDomain(preset))
-    suspend fun deleteCustomEqPreset(id: String) = musicDao.deleteEqPreset(id)
+    suspend fun saveCustomEqPreset(preset: EqualizerPreset) = withContext(Dispatchers.IO) { musicDao.insertEqPreset(EqualizerPresetEntity.fromDomain(preset)) }
+    suspend fun deleteCustomEqPreset(id: String) = withContext(Dispatchers.IO) { musicDao.deleteEqPreset(id) }
+
+    // --- Phase 8 Features (#62, #65, #66, #68, #69, #71, #74, #76, #81, #82, #85) ---
+
+    suspend fun ensureSongEnergyAnalyzed(song: Song): Song = withContext(Dispatchers.IO) {
+        if (song.energyHeatmap.size == 64 && song.peakTimestampsMs.isNotEmpty() && song.dropTimestampMs > 0L) {
+            return@withContext song
+        }
+        val analysis = EnergyAndBeatAnalyzer.analyzeSong(song)
+        val heatmapCsv = analysis.heatmap.joinToString(",") { String.format(java.util.Locale.US, "%.3f", it) }
+        val peakCsv = analysis.peakTimestampsMs.joinToString(",")
+        musicDao.updateEnergyAndPeaks(song.id, heatmapCsv, peakCsv, analysis.dropTimestampMs)
+        song.copy(
+            energyHeatmap = analysis.heatmap,
+            peakTimestampsMs = analysis.peakTimestampsMs,
+            dropTimestampMs = analysis.dropTimestampMs
+        )
+    }
+
+    suspend fun updateSongVibeTags(songId: Long, vibeTagsCsv: String) = withContext(Dispatchers.IO) {
+        musicDao.updateSongVibeTags(songId, vibeTagsCsv)
+    }
+
+    suspend fun updateSongResumePosition(songId: Long, positionMs: Long) = withContext(Dispatchers.IO) {
+        musicDao.updateSongResumePosition(songId, positionMs.coerceAtLeast(0L))
+    }
+
+    suspend fun bulkCleanJunkTags(candidates: List<JunkCleanupCandidate>): Int = withContext(Dispatchers.IO) {
+        if (candidates.isEmpty()) return@withContext 0
+        val rows = candidates.map {
+            Triple(it.song.id, arrayOf(it.cleanedTitle, it.cleanedArtist, it.cleanedAlbum), Unit)
+        }
+        rows.chunked(200).forEach { chunk ->
+            musicDao.bulkCleanJunkTags(chunk)
+        }
+        candidates.size
+    }
+
+    // #66 Artist Link Chain
+    suspend fun findArtistChainCandidates(currentSong: Song, excludeIds: Set<Long>): ImmutableList<Song> =
+        withContext(Dispatchers.IO) {
+            val all = musicDao.getAllSongsOnce()
+            var collabs = musicDao.getCollaboratorsForSong(currentSong.id)
+            if (collabs.isEmpty()) {
+                val extracted = JunkTagCleaner.extractCollaborators(currentSong.artist).map { it.lowercase() }
+                if (extracted.isNotEmpty()) {
+                    val toInsert = all.flatMap { s ->
+                        JunkTagCleaner.extractCollaborators(s.artist).map { c ->
+                            TrackCollaborationEntity(s.id, c.lowercase(), c)
+                        }
+                    }
+                    if (toInsert.isNotEmpty()) toInsert.chunked(500).forEach { musicDao.insertCollaborations(it) }
+                    collabs = extracted
+                }
+            }
+            if (collabs.isEmpty()) return@withContext persistentListOf()
+            val matchedIds = musicDao.findSongIdsByCollaborators(collabs).toSet()
+            all.filter { it.id in matchedIds && it.id !in excludeIds && !it.isHidden }
+                .map { it.toDomain() }
+                .take(8)
+                .toImmutableList()
+        }
+
+    // #68 Offline Trophy Cabinet
+    val trophies: Flow<ImmutableList<TrophyItem>> = musicDao.observeTrophies()
+        .map { list -> list.map { it.toDomain() }.toImmutableList() }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun evaluateAndUnlockTrophies() = withContext(Dispatchers.IO) {
+        val now = System.currentTimeMillis()
+        val songs = musicDao.getAllSongsOnce()
+        val summary = musicDao.getWrappedSummaryOnce()
+        val playlists = musicDao.getAllPlaylistsOnce()
+        val existing = musicDao.getTrophiesOnce().associateBy { it.id }
+
+        val totalPlays = summary?.totalPlays ?: songs.sumOf { it.playCount }
+        val streakDays = summary?.streakDays ?: 0
+        val favCount = songs.count { it.isFavorite }
+        val flacCount = songs.count { it.mimeType.contains("flac", true) || it.dataPath.endsWith(".flac", true) }
+        val hiddenCount = songs.count { it.isHidden }
+        val vibeCount = songs.count { it.vibeTags.isNotBlank() }
+
+        fun make(id: String, title: String, desc: String, progress: Int, target: Int): TrophyEntity {
+            val prev = existing[id]
+            val unlocked = progress >= target || (prev?.unlocked == true)
+            val unlockedAt = when {
+                prev?.unlocked == true && prev.unlockedAt > 0L -> prev.unlockedAt
+                unlocked -> now
+                else -> 0L
+            }
+            return TrophyEntity(
+                id = id,
+                title = title,
+                description = desc,
+                unlocked = unlocked,
+                unlockedAt = unlockedAt,
+                progress = progress.coerceAtMost(target),
+                target = target
+            )
+        }
+
+        val items = listOf(
+            make("trophy_first_10", "Melómano Local", "Escucha 10 pistas sin conexión", totalPlays, 10),
+            make("trophy_100_plays", "Frecuencia Continua", "Alcanza 100 reproducciones offline", totalPlays, 100),
+            make("trophy_streak_7", "Racha de 7 Días", "Escucha música 7 días seguidos", streakDays, 7),
+            make("trophy_collector_50", "Coleccionista", "Indexa 50 canciones locales", songs.size, 50),
+            make("trophy_fav_10", "Curador Selecto", "Marca 10 canciones favoritas", favCount, 10),
+            make("trophy_lossless", "Purista Hi-Fi", "Ten 5 archivos FLAC sin pérdida", flacCount, 5),
+            make("trophy_playlists_3", "Arquitecto de Mezclas", "Crea 3 playlists personalizadas", playlists.size, 3),
+            make("trophy_vibes_5", "Maestro de Vibes", "Etiqueta 5 temas con Vibe Chips", vibeCount, 5),
+            make("trophy_vault", "Guardián Secreto", "Protege una pista en la Bóveda", hiddenCount, 1)
+        )
+        musicDao.upsertTrophies(items)
+    }
+
+    // #82 Per-MAC Bluetooth Auto-Profile
+    val bluetoothProfiles: Flow<ImmutableList<BluetoothMacProfile>> = musicDao.observeBluetoothProfiles()
+        .map { list -> list.map { it.toDomain() }.toImmutableList() }
+        .flowOn(Dispatchers.IO)
+
+    suspend fun saveBluetoothProfile(profile: BluetoothMacProfile) = withContext(Dispatchers.IO) {
+        musicDao.upsertBluetoothProfile(
+            BluetoothMacProfileEntity(
+                macAddress = profile.macAddress,
+                deviceName = profile.deviceName,
+                eqPresetId = profile.eqPresetId,
+                initialVolumePercent = profile.initialVolumePercent.coerceIn(5, 100)
+            )
+        )
+    }
+
+    suspend fun deleteBluetoothProfile(macAddress: String) = withContext(Dispatchers.IO) {
+        musicDao.deleteBluetoothProfile(macAddress)
+    }
+
+    suspend fun getBluetoothProfileByMac(mac: String): BluetoothMacProfile? = withContext(Dispatchers.IO) {
+        musicDao.getBluetoothProfileByMac(mac)?.toDomain()
+    }
+
+    // #81 .synfix Backup Snapshot Builder & Restorer
+    suspend fun buildBackupSnapshot(customVibeChipsCsv: String): SynFixBackupSnapshot = withContext(Dispatchers.IO) {
+        val songs = musicDao.getAllSongsOnce()
+        val songPathById = songs.associate { it.id to it.dataPath }
+        val playlists = musicDao.getAllPlaylistsOnce()
+        val refs = musicDao.getAllPlaylistRefsOnce()
+        val eqPresets = musicDao.getCustomEqPresetsOnce()
+        val notes = musicDao.getAllTrackNotesOnce()
+        val btProfiles = musicDao.getBluetoothProfilesOnce()
+        val summary = musicDao.getWrappedSummaryOnce()
+
+        val backupPlaylists = playlists.map { pl ->
+            val paths = refs.filter { it.playlistId == pl.id }.mapNotNull { songPathById[it.songId] }
+            SynFixBackupPlaylist(pl.name, paths)
+        }
+        val backupEq = eqPresets.map { eq ->
+            val bands = eq.bandsCsv.split(',').mapNotNull { it.toFloatOrNull() }
+            SynFixBackupEqPreset(eq.id, eq.name, bands, eq.preampDb, eq.bassBoost, eq.virtualizer)
+        }
+        val backupNotes = notes.mapNotNull { n ->
+            val p = songPathById[n.songId] ?: return@mapNotNull null
+            SynFixBackupNote(p, n.timestampMs, n.noteText)
+        }
+        val backupVibes = songs.filter { it.vibeTags.isNotBlank() }
+            .map { SynFixBackupVibeEntry(it.dataPath, it.vibeTags) }
+        val backupBt = btProfiles.map {
+            SynFixBackupBtProfile(it.macAddress, it.deviceName, it.eqPresetId, it.initialVolumePercent)
+        }
+
+        SynFixBackupSnapshot(
+            version = 1,
+            exportedAtMillis = System.currentTimeMillis(),
+            customVibeChipsCsv = customVibeChipsCsv,
+            playlists = backupPlaylists,
+            eqPresets = backupEq,
+            notes = backupNotes,
+            songVibes = backupVibes,
+            btProfiles = backupBt,
+            totalPlays = summary?.totalPlays ?: 0,
+            totalListeningMs = summary?.totalListeningMs ?: 0L,
+            streakDays = summary?.streakDays ?: 0
+        )
+    }
+
+    suspend fun restoreBackupSnapshot(snapshot: SynFixBackupSnapshot): Int = withContext(Dispatchers.IO) {
+        val songs = musicDao.getAllSongsOnce()
+        val songIdByPath = songs.associate { it.dataPath to it.id }
+        val existingPlaylists = musicDao.getAllPlaylistsOnce().associateBy { it.name.lowercase() }
+        var restoredItems = 0
+
+        snapshot.playlists.forEach { bpl ->
+            val plId = existingPlaylists[bpl.name.lowercase()]?.id
+                ?: musicDao.insertPlaylist(PlaylistEntity(name = bpl.name))
+            bpl.songPaths.forEach { path ->
+                songIdByPath[path]?.let { sid ->
+                    musicDao.insertPlaylistSong(PlaylistSongCrossRef(plId, sid))
+                    restoredItems++
+                }
+            }
+        }
+        snapshot.eqPresets.forEach { beq ->
+            musicDao.insertEqPreset(
+                EqualizerPresetEntity(
+                    id = beq.id,
+                    name = beq.name,
+                    bandsCsv = beq.bandsDb.joinToString(","),
+                    preampDb = beq.preampDb,
+                    bassBoost = beq.bassBoost,
+                    virtualizer = beq.virtualizer
+                )
+            )
+            restoredItems++
+        }
+        snapshot.notes.forEach { bn ->
+            songIdByPath[bn.songPath]?.let { sid ->
+                musicDao.insertTrackNote(TrackNoteEntity(songId = sid, timestampMs = bn.timestampMs, noteText = bn.noteText))
+                restoredItems++
+            }
+        }
+        snapshot.songVibes.forEach { bv ->
+            songIdByPath[bv.songPath]?.let { sid ->
+                musicDao.updateSongVibeTags(sid, bv.vibeTags)
+                restoredItems++
+            }
+        }
+        snapshot.btProfiles.forEach { bt ->
+            musicDao.upsertBluetoothProfile(
+                BluetoothMacProfileEntity(bt.macAddress, bt.deviceName, bt.eqPresetId, bt.initialVolumePercent)
+            )
+            restoredItems++
+        }
+        restoredItems
+    }
+
+    // #85 DSP & Battery Efficiency Center
+    fun buildDspBatteryStats(songs: List<Song>, offloadSeconds: Long, dspSeconds: Long): DspBatteryStats {
+        val byFormat = songs.groupBy { s ->
+            val ext = s.dataPath.substringAfterLast('.', "").uppercase()
+            when {
+                ext in setOf("FLAC", "ALAC", "WAV", "AIFF") -> ext
+                ext in setOf("MP3", "M4A", "AAC", "OGG", "OPUS") -> ext
+                s.mimeType.contains("flac", true) -> "FLAC"
+                s.mimeType.contains("mpeg", true) -> "MP3"
+                else -> "OTRO"
+            }
+        }.map { (fmt, group) ->
+            FormatSpaceBreakdown(
+                format = fmt,
+                trackCount = group.size,
+                totalMb = group.sumOf { it.fileSizeBytes } / (1024f * 1024f)
+            )
+        }.sortedByDescending { it.totalMb }.toImmutableList()
+
+        val totalSec = (offloadSeconds + dspSeconds).coerceAtLeast(1L)
+        val pct = ((offloadSeconds * 100L) / totalSec).toInt().coerceIn(0, 100)
+        // Hardware offload typically saves ~45 mA vs software PCM decoding/DSP (~162 mAh/hour)
+        val savedMah = (offloadSeconds / 3600f) * 45f
+        return DspBatteryStats(
+            formatBreakdown = byFormat,
+            offloadSeconds = offloadSeconds,
+            dspSeconds = dspSeconds,
+            offloadPercentage = pct,
+            estimatedBatterySavedMah = savedMah
+        )
+    }
 }

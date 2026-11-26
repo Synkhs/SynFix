@@ -6,10 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,10 +28,12 @@ import kotlin.math.roundToInt
 fun SleepTimerSheet(
     state: SleepTimerState,
     onStartTimer: (minutes: Int, stopAfterTrack: Boolean) -> Unit,
+    onStartTrackTimer: (trackCount: Int) -> Unit = {},
     onCancelTimer: () -> Unit,
     onDismiss: () -> Unit
 ) {
     var customMinutes by remember { mutableFloatStateOf(25f) }
+    var trackCount by remember { mutableIntStateOf(3) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -64,12 +63,12 @@ fun SleepTimerSheet(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = if (state.stopAfterCurrentTrack) {
-                                    "Al finalizar la canción actual"
-                                } else {
-                                    "Restante: ${formatDuration(state.remainingMs)}"
+                                text = when {
+                                    state.remainingTracks > 0 -> "Quedan ${state.remainingTracks} pista(s)"
+                                    state.stopAfterCurrentTrack -> "Al finalizar la canción actual"
+                                    else -> "Restante: ${formatDuration(state.remainingMs)}"
                                 },
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -115,6 +114,55 @@ fun SleepTimerSheet(
                 }
             }
 
+            // #83 Track-Count Sleep Timer
+            HorizontalDivider()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Por número de pistas", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "Detener automáticamente tras $trackCount pista(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilledTonalIconButton(
+                        onClick = { if (trackCount > 1) trackCount-- },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Filled.Remove, contentDescription = "Menos pistas", modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        text = "$trackCount",
+                        style = ExpressiveTypography.MonoTimecode,
+                        modifier = Modifier.widthIn(min = 24.dp)
+                    )
+                    FilledTonalIconButton(
+                        onClick = { if (trackCount < 20) trackCount++ },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = "Más pistas", modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+            FilledTonalButton(
+                onClick = {
+                    onStartTrackTimer(trackCount)
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Apagar después de $trackCount pista(s)")
+            }
+
+            HorizontalDivider()
             Text(
                 text = "Personalizado: ${customMinutes.roundToInt()} min",
                 style = MaterialTheme.typography.labelLarge
@@ -142,6 +190,9 @@ fun SleepTimerSheet(
 fun QueueBottomSheet(
     queue: ImmutableList<Song>,
     currentIndex: Int,
+    pinnedIds: Set<Long> = emptySet(),
+    onTogglePin: (Long) -> Unit = {},
+    onSmartShufflePreservingPins: () -> Unit = {},
     onJumpToIndex: (Int) -> Unit,
     onRemoveIndex: (Int) -> Unit,
     onDismiss: () -> Unit
@@ -161,21 +212,33 @@ fun QueueBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("Cola de reproducción", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        text = "${queue.size} pistas",
+                        text = "${queue.size} pistas • ${pinnedIds.size} ancladas",
                         style = ExpressiveTypography.MonoTimecode,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                FilterChip(
-                    selected = stackViewMode,
-                    onClick = { stackViewMode = !stackViewMode },
-                    leadingIcon = { Icon(Icons.Filled.Layers, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text(if (stackViewMode) "Pila 3D" else "Lista") }
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    // #73 Smart Shuffle preserving pinned anchors
+                    FilledTonalButton(
+                        onClick = onSmartShufflePreservingPins,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Filled.Shuffle, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Mezclar", style = MaterialTheme.typography.labelMedium)
+                    }
+
+                    FilterChip(
+                        selected = stackViewMode,
+                        onClick = { stackViewMode = !stackViewMode },
+                        leadingIcon = { Icon(Icons.Filled.Layers, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        label = { Text(if (stackViewMode) "Pila" else "Lista") }
+                    )
+                }
             }
             HorizontalDivider()
 
@@ -197,6 +260,7 @@ fun QueueBottomSheet(
                     contentType = { _, _ -> "queue_item" }
                 ) { index, song ->
                     val isCurrent = index == currentIndex
+                    val isPinned = song.id in pinnedIds
                     ListItem(
                         headlineContent = {
                             Text(
@@ -220,15 +284,24 @@ fun QueueBottomSheet(
                             )
                         },
                         trailingContent = {
-                            if (isCurrent) {
-                                Icon(
-                                    Icons.Filled.MusicNote,
-                                    contentDescription = "Reproduciendo",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                IconButton(onClick = { onRemoveIndex(index) }) {
-                                    Icon(Icons.Filled.Close, contentDescription = "Quitar de la cola")
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { onTogglePin(song.id) }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.PushPin,
+                                        contentDescription = if (isPinned) "Desanclar pista" else "Fijar posición",
+                                        tint = if (isPinned) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                    )
+                                }
+                                if (isCurrent) {
+                                    Icon(
+                                        Icons.Filled.MusicNote,
+                                        contentDescription = "Reproduciendo",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                } else {
+                                    IconButton(onClick = { onRemoveIndex(index) }) {
+                                        Icon(Icons.Filled.Close, contentDescription = "Quitar de la cola")
+                                    }
                                 }
                             }
                         },

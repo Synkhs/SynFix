@@ -31,4 +31,14 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.setLifecycleResumed(true)
+    }
+
+    override fun onPause() {
+        viewModel.setLifecycleResumed(false)
+        super.onPause()
+    }
 }

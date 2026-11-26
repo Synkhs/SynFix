@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">SynFix</string>
+    <string name="widget_description">Reproductor SynFix M3 Expressive con progreso y controles locales</string>
+    <string name="qs_tile_label">SynFix Mix</string>
 </resources>

@@ -76,8 +76,11 @@ class AudioEffectsEngine(private val context: Context) {
     private var focusFilterBand: FocusFilterBand = FocusFilterBand.NONE
     private var slowedReverbEnabled: Boolean = false
     private var adaptiveAmbientEnabled: Boolean = false
+    private var earSafeLimiterEnabled: Boolean = true
 
     private var currentAmbientGainMb: Int = 0
+    private val ambientSampleBuffer = ShortArray(8000)
+    private val reusableEffectiveBands = FloatArray(10)
     private val ambientScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var ambientJob: Job? = null
 
@@ -203,7 +206,8 @@ class AudioEffectsEngine(private val context: Context) {
         venueReverb: VenueReverbPreset,
         focusFilter: FocusFilterBand,
         slowedReverb: Boolean,
-        adaptiveAmbient: Boolean
+        adaptiveAmbient: Boolean,
+        earSafeLimiter: Boolean = true
     ) {
         this.enabled = enabled
         this.currentBandsDb = if (bandsDb.size == 10) bandsDb else List(10) { bandsDb.getOrElse(it) { 0f } }
@@ -215,6 +219,7 @@ class AudioEffectsEngine(private val context: Context) {
         this.venueReverbPreset = venueReverb
         this.focusFilterBand = focusFilter
         this.slowedReverbEnabled = slowedReverb
+        this.earSafeLimiterEnabled = earSafeLimiter
 
         if (this.adaptiveAmbientEnabled != adaptiveAmbient) {
             this.adaptiveAmbientEnabled = adaptiveAmbient
@@ -240,10 +245,14 @@ class AudioEffectsEngine(private val context: Context) {
         if (audioSessionId <= 0) return
 
         val eqOrFocusActive = enabled || focusFilterBand != FocusFilterBand.NONE
+        val hasActiveBalanceOrPreamp = kotlin.math.abs(currentBalance) > 0.01f || kotlin.math.abs(currentPreampDb) > 0.05f
+        val dpNeeded = eqOrFocusActive || nightModeDrcEnabled || hasActiveBalanceOrPreamp ||
+            (earSafeLimiterEnabled && (eqOrFocusActive || nightModeDrcEnabled || currentPreampDb > 0f))
         val dp = dynamicsProcessing
         if (dp != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             runCatching {
-                dp.enabled = eqOrFocusActive || nightModeDrcEnabled
+                dp.enabled = dpNeeded
+                if (!dpNeeded) return@runCatching
                 val leftAttenuationDb = if (currentBalance > 0f) -24f * currentBalance else 0f
                 val rightAttenuationDb = if (currentBalance < 0f) -24f * (-currentBalance) else 0f
 
@@ -266,16 +275,25 @@ class AudioEffectsEngine(private val context: Context) {
                     mbc.isEnabled = nightModeDrcEnabled
                     dp.setMbcByChannelIndex(ch, mbc)
 
+                    // #56 Ear-Safe SPL Limiter + #7 Night Mode DRC Limiter
                     val limiter = dp.getLimiterByChannelIndex(ch)
-                    limiter.isEnabled = true
-                    if (nightModeDrcEnabled) {
-                        limiter.threshold = -6.0f
-                        limiter.ratio = 6.0f
-                        limiter.postGain = 2.0f
-                    } else {
-                        limiter.threshold = -0.5f
-                        limiter.ratio = 4.0f
-                        limiter.postGain = 0.0f
+                    limiter.isEnabled = earSafeLimiterEnabled || nightModeDrcEnabled
+                    when {
+                        nightModeDrcEnabled -> {
+                            limiter.threshold = -6.0f
+                            limiter.ratio = 6.0f
+                            limiter.postGain = 2.0f
+                        }
+                        earSafeLimiterEnabled -> {
+                            limiter.threshold = -1.5f
+                            limiter.ratio = 8.0f
+                            limiter.postGain = 0.0f
+                        }
+                        else -> {
+                            limiter.threshold = -0.2f
+                            limiter.ratio = 2.0f
+                            limiter.postGain = 0.0f
+                        }
                     }
                     dp.setLimiterByChannelIndex(ch, limiter)
                 }
@@ -409,7 +427,7 @@ class AudioEffectsEngine(private val context: Context) {
                 minBuf
             )
             if (recorder.state != AudioRecord.STATE_INITIALIZED) return -40f
-            val buf = ShortArray(sampleRate) // 1 second window
+            val buf = ambientSampleBuffer
             recorder.startRecording()
             val read = recorder.read(buf, 0, buf.size)
             recorder.stop()
@@ -430,13 +448,15 @@ class AudioEffectsEngine(private val context: Context) {
 
     private fun interpolateGainForFreq(freqHz: Float): Float {
         val freqs = BuiltInEqPresets.BAND_FREQUENCIES_HZ
-        val effective = List(10) { effectiveBandDb(it) }
-        if (freqHz <= freqs.first()) return effective.first()
-        if (freqHz >= freqs.last()) return effective.last()
+        for (i in 0 until 10) {
+            reusableEffectiveBands[i] = effectiveBandDb(i)
+        }
+        if (freqHz <= freqs.first()) return reusableEffectiveBands[0]
+        if (freqHz >= freqs.last()) return reusableEffectiveBands[9]
         for (i in 0 until freqs.lastIndex) {
             if (freqHz >= freqs[i] && freqHz <= freqs[i + 1]) {
                 val ratio = (freqHz - freqs[i]) / (freqs[i + 1] - freqs[i])
-                return effective[i] + ratio * (effective[i + 1] - effective[i])
+                return reusableEffectiveBands[i] + ratio * (reusableEffectiveBands[i + 1] - reusableEffectiveBands[i])
             }
         }
         return 0f

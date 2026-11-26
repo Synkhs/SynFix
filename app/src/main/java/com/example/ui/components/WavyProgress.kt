@@ -47,9 +47,11 @@ fun LinearWavyProgressIndicator(
     modifier: Modifier = Modifier,
     rmsProvider: () -> Float = { 0.45f },
     noteFractions: ImmutableList<Float> = persistentListOf(),
+    energyHeatmap: ImmutableList<Float> = persistentListOf(),
     color: Color = MaterialTheme.colorScheme.primary,
     trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     notePinColor: Color = MaterialTheme.colorScheme.tertiary,
+    hotColor: Color = MaterialTheme.colorScheme.tertiary,
     onScrubbingChanged: (Boolean, Float) -> Unit = { _, _ -> }
 ) {
     var isDragging by remember { mutableStateOf(false) }
@@ -135,14 +137,35 @@ fun LinearWavyProgressIndicator(
         for (i in rmsRing.indices) rmsAvg += rmsRing[i]
         rmsAvg /= rmsRing.size
 
-        // Inactive track
-        drawLine(
-            color = trackColor.copy(alpha = 0.55f),
-            start = Offset(activeX, centerY),
-            end = Offset(width, centerY),
-            strokeWidth = 4.dp.toPx(),
-            cap = StrokeCap.Round
-        )
+        // Inactive track (renders faint energy heatmap bars if precomputed #69)
+        if (energyHeatmap.isNotEmpty()) {
+            val count = energyHeatmap.size
+            val segW = width / count.toFloat()
+            for (i in 0 until count) {
+                val sx = i * segW
+                val ex = sx + segW * 0.78f
+                if (ex > activeX) {
+                    val startX = sx.coerceAtLeast(activeX)
+                    val energy = energyHeatmap[i].coerceIn(0.1f, 1f)
+                    drawLine(
+                        color = androidx.compose.ui.graphics.lerp(trackColor, hotColor, energy * 0.45f)
+                            .copy(alpha = 0.42f + energy * 0.32f),
+                        start = Offset(startX, centerY),
+                        end = Offset(ex.coerceAtLeast(startX), centerY),
+                        strokeWidth = (2.6.dp.toPx() + energy * 3.0.dp.toPx()),
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+        } else {
+            drawLine(
+                color = trackColor.copy(alpha = 0.55f),
+                start = Offset(activeX, centerY),
+                end = Offset(width, centerY),
+                strokeWidth = 4.dp.toPx(),
+                cap = StrokeCap.Round
+            )
+        }
 
         // Active RMS-modulated wavy path
         if (activeX > 1f) {
@@ -160,7 +183,11 @@ fun LinearWavyProgressIndicator(
                 while (x <= activeX) {
                     val edgeFade = ((activeX - x) / 14.dp.toPx()).coerceIn(0f, 1f)
                     val localBin = rmsRing[((x / width) * 15f).toInt().coerceIn(0, 15)]
-                    val localScale = 0.72f + localBin * 0.55f
+                    val heatmapScale = if (energyHeatmap.isNotEmpty()) {
+                        val hIdx = ((x / width) * (energyHeatmap.size - 1)).toInt().coerceIn(0, energyHeatmap.lastIndex)
+                        0.68f + energyHeatmap[hIdx] * 0.65f
+                    } else 1f
+                    val localScale = (0.72f + localBin * 0.55f) * heatmapScale
                     val angle = (x / wavelength) * (2f * Math.PI.toFloat()) - phase
                     val y = centerY + sin(angle) * maxAmplitude * edgeFade * localScale
                     wavePath.lineTo(x, y)
@@ -169,9 +196,17 @@ fun LinearWavyProgressIndicator(
                 wavePath.lineTo(activeX, centerY)
             }
 
+            val currentEnergy = if (energyHeatmap.isNotEmpty()) {
+                val idx = (activeProgress * (energyHeatmap.size - 1)).toInt().coerceIn(0, energyHeatmap.lastIndex)
+                energyHeatmap[idx]
+            } else 0.35f
+            val activeStrokeColor = if (energyHeatmap.isNotEmpty()) {
+                androidx.compose.ui.graphics.lerp(color, hotColor, (currentEnergy - 0.35f).coerceIn(0f, 1f))
+            } else color
+
             drawPath(
                 path = wavePath,
-                color = color,
+                color = activeStrokeColor,
                 style = Stroke(width = 4.5.dp.toPx(), cap = StrokeCap.Round)
             )
         }

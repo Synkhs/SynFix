@@ -2,16 +2,14 @@ package com.example
 
 import android.app.Application
 import androidx.work.Configuration
+import com.example.data.audio.AutoEqRepository
 import com.example.data.db.MusicDatabase
 import com.example.data.prefs.SynFixPreferences
 import com.example.data.repository.MusicRepository
 import com.example.data.tags.AudioTagEditor
 import com.example.data.worker.CamelotKeyWorker
 import com.example.data.worker.ReplayGainWorker
-import com.example.player.AudioEffectsEngine
-import com.example.player.AudioVisualizerController
-import com.example.player.LocalPartySyncEngine
-import com.example.player.SubBassHapticEngine
+import com.example.player.*
 
 class SynFixApplication : Application(), Configuration.Provider {
     val database: MusicDatabase by lazy { MusicDatabase.getDatabase(this) }
@@ -23,6 +21,15 @@ class SynFixApplication : Application(), Configuration.Provider {
     val subBassHapticEngine: SubBassHapticEngine by lazy { SubBassHapticEngine(this) }
     val partySyncEngine: LocalPartySyncEngine by lazy { LocalPartySyncEngine(this) }
 
+    // Phase 8 engines
+    val autoEqRepository: AutoEqRepository by lazy { AutoEqRepository(this) }
+    val ambienceStandaloneEngine: AmbienceStandaloneEngine by lazy { AmbienceStandaloneEngine() }
+    val btProfileManager: BluetoothProfileManager by lazy { BluetoothProfileManager(this) }
+    val sensorController: SynFixSensorController by lazy { SynFixSensorController(this) }
+    val partyStrobeController: PartyStrobeController by lazy { PartyStrobeController(this) }
+    val sharedAuxPlayer: SharedAuxPlayer by lazy { SharedAuxPlayer(this) }
+    val localQrWebServer: LocalQrWebServer by lazy { LocalQrWebServer(this) }
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setMinimumLoggingLevel(android.util.Log.INFO)
@@ -33,9 +40,16 @@ class SynFixApplication : Application(), Configuration.Provider {
         runCatching { ReplayGainWorker.scheduleChargingScan(this) }
         runCatching { CamelotKeyWorker.scheduleChargingScan(this) }
         runCatching { subBassHapticEngine.startObserving(visualizerController.subBassEnergy) }
+        runCatching { partyStrobeController.startObserving(visualizerController.subBassEnergy) }
     }
 
     override fun onTerminate() {
+        localQrWebServer.stop()
+        sharedAuxPlayer.stopAndRelease()
+        partyStrobeController.destroy()
+        sensorController.destroy()
+        btProfileManager.destroy()
+        ambienceStandaloneEngine.destroy()
         partySyncEngine.destroy()
         subBassHapticEngine.destroy()
         visualizerController.destroy()

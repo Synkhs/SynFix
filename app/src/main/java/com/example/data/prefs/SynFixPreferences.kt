@@ -5,6 +5,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.domain.model.*
+import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -55,6 +57,32 @@ class SynFixPreferences(private val context: Context) {
         val EQ_SPEAKER_PRESET = stringPreferencesKey("eq_speaker_preset")
         val EQ_WIRED_PRESET = stringPreferencesKey("eq_wired_preset")
         val EQ_BLUETOOTH_PRESET = stringPreferencesKey("eq_bluetooth_preset")
+
+        // Phase 8 keys
+        val GYRO_PARALLAX = booleanPreferencesKey("gyro_parallax")
+        val SHAKE_TO_SKIP = booleanPreferencesKey("shake_to_skip")
+        val PARTY_STROBE = booleanPreferencesKey("party_strobe")
+        val PARTY_STROBE_TORCH = booleanPreferencesKey("party_strobe_torch")
+        val CUSTOM_VIBE_CHIPS = stringPreferencesKey("custom_vibe_chips")
+        val PINNED_QUEUE_IDS = stringPreferencesKey("pinned_queue_ids")
+
+        val AUDIO_8D_ENABLED = booleanPreferencesKey("audio_8d_enabled")
+        val AUDIO_8D_SPEED = floatPreferencesKey("audio_8d_speed")
+        val HARMONIC_EXCITER = floatPreferencesKey("harmonic_exciter")
+        val SEMITONE_SHIFT = intPreferencesKey("semitone_shift")
+        val EAR_SAFE_LIMITER = booleanPreferencesKey("ear_safe_limiter")
+        val DR_CLIPPING_GUARD = booleanPreferencesKey("dr_clipping_guard")
+        val TURNTABLE_BRAKE = booleanPreferencesKey("turntable_brake")
+
+        val AMBIENCE_ENABLED = booleanPreferencesKey("ambience_enabled")
+        val AMBIENCE_RAIN = floatPreferencesKey("ambience_rain")
+        val AMBIENCE_FIRE = floatPreferencesKey("ambience_fire")
+        val AMBIENCE_PINK = floatPreferencesKey("ambience_pink")
+        val AMBIENCE_BINAURAL_40 = floatPreferencesKey("ambience_binaural_40")
+        val AMBIENCE_BINAURAL_4 = floatPreferencesKey("ambience_binaural_4")
+
+        val OFFLOAD_SECONDS_ACCUM = longPreferencesKey("offload_seconds_accum")
+        val DSP_SECONDS_ACCUM = longPreferencesKey("dsp_seconds_accum")
     }
 
     private val safeData: Flow<Preferences> = context.dataStore.data
@@ -64,6 +92,25 @@ class SynFixPreferences(private val context: Context) {
 
     val appearanceSettings: Flow<AppearanceSettings> = safeData.map { parseAppearance(it) }
     val playbackSettings: Flow<PlaybackSettings> = safeData.map { parsePlayback(it) }
+    val ambienceMixState: Flow<AmbienceMixState> = safeData.map { prefs ->
+        AmbienceMixState(
+            enabled = prefs[Keys.AMBIENCE_ENABLED] ?: false,
+            rainLevel = prefs[Keys.AMBIENCE_RAIN] ?: 0f,
+            fireLevel = prefs[Keys.AMBIENCE_FIRE] ?: 0f,
+            pinkNoiseLevel = prefs[Keys.AMBIENCE_PINK] ?: 0f,
+            binaural40HzLevel = prefs[Keys.AMBIENCE_BINAURAL_40] ?: 0f,
+            binaural4HzLevel = prefs[Keys.AMBIENCE_BINAURAL_4] ?: 0f
+        )
+    }
+    val pinnedQueueIds: Flow<Set<Long>> = safeData.map { prefs ->
+        (prefs[Keys.PINNED_QUEUE_IDS] ?: "")
+            .split(',')
+            .mapNotNull { it.toLongOrNull() }
+            .toSet()
+    }
+    val offloadDspSeconds: Flow<Pair<Long, Long>> = safeData.map { prefs ->
+        (prefs[Keys.OFFLOAD_SECONDS_ACCUM] ?: 0L) to (prefs[Keys.DSP_SECONDS_ACCUM] ?: 0L)
+    }
 
     val minDurationSeconds: Flow<Int> = safeData.map { it[Keys.MIN_DURATION_SECONDS] ?: 15 }
     val excludedFolders: Flow<Set<String>> = safeData.map {
@@ -78,7 +125,7 @@ class SynFixPreferences(private val context: Context) {
         val bassBoost: Int,
         val virtualizer: Int,
         val autoOutputProfile: Boolean,
-        val devicePresetMap: Map<AudioOutputType, String>
+        val devicePresetMap: ImmutableMap<AudioOutputType, String>
     )
 
     val eqState: Flow<StoredEqState> = safeData.map { prefs ->
@@ -96,7 +143,7 @@ class SynFixPreferences(private val context: Context) {
             bassBoost = prefs[Keys.EQ_BASS_BOOST] ?: 0,
             virtualizer = prefs[Keys.EQ_VIRTUALIZER] ?: 0,
             autoOutputProfile = prefs[Keys.EQ_AUTO_OUTPUT_PROFILE] ?: false,
-            devicePresetMap = mapOf(
+            devicePresetMap = persistentMapOf(
                 AudioOutputType.SPEAKER to (prefs[Keys.EQ_SPEAKER_PRESET] ?: "flat"),
                 AudioOutputType.WIRED_HEADSET to (prefs[Keys.EQ_WIRED_PRESET] ?: "vocal"),
                 AudioOutputType.BLUETOOTH to (prefs[Keys.EQ_BLUETOOTH_PRESET] ?: "bass_boost")
@@ -117,6 +164,11 @@ class SynFixPreferences(private val context: Context) {
             prefs[Keys.PROCEDURAL_ART_FALLBACK] = updated.proceduralArtFallback
             prefs[Keys.FLOATING_BUBBLE_ENABLED] = updated.floatingBubbleEnabled
             prefs[Keys.SUB_BASS_HAPTICS_ENABLED] = updated.subBassHapticsEnabled
+            prefs[Keys.GYRO_PARALLAX] = updated.gyroParallaxEnabled
+            prefs[Keys.SHAKE_TO_SKIP] = updated.shakeToSkipEnabled
+            prefs[Keys.PARTY_STROBE] = updated.partyStrobeEnabled
+            prefs[Keys.PARTY_STROBE_TORCH] = updated.partyStrobeTorchEnabled
+            prefs[Keys.CUSTOM_VIBE_CHIPS] = updated.customVibeChipsCsv
         }
     }
 
@@ -138,6 +190,41 @@ class SynFixPreferences(private val context: Context) {
             prefs[Keys.LOFI_TAPE_ENABLED] = updated.lofiTapeEnabled
             prefs[Keys.SLOWED_REVERB_ENABLED] = updated.slowedReverbEnabled
             prefs[Keys.ADAPTIVE_AMBIENT_ENABLED] = updated.adaptiveAmbientEnabled
+            prefs[Keys.AUDIO_8D_ENABLED] = updated.audio8dEnabled
+            prefs[Keys.AUDIO_8D_SPEED] = updated.audio8dSpeed
+            prefs[Keys.HARMONIC_EXCITER] = updated.harmonicExciterLevel
+            prefs[Keys.SEMITONE_SHIFT] = updated.semitoneShift
+            prefs[Keys.EAR_SAFE_LIMITER] = updated.earSafeLimiterEnabled
+            prefs[Keys.DR_CLIPPING_GUARD] = updated.drClippingGuardEnabled
+            prefs[Keys.TURNTABLE_BRAKE] = updated.turntableBrakeEnabled
+        }
+    }
+
+    suspend fun updateAmbienceMix(state: AmbienceMixState) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.AMBIENCE_ENABLED] = state.enabled
+            prefs[Keys.AMBIENCE_RAIN] = state.rainLevel
+            prefs[Keys.AMBIENCE_FIRE] = state.fireLevel
+            prefs[Keys.AMBIENCE_PINK] = state.pinkNoiseLevel
+            prefs[Keys.AMBIENCE_BINAURAL_40] = state.binaural40HzLevel
+            prefs[Keys.AMBIENCE_BINAURAL_4] = state.binaural4HzLevel
+        }
+    }
+
+    suspend fun setPinnedQueueIds(ids: Set<Long>) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.PINNED_QUEUE_IDS] = ids.joinToString(",")
+        }
+    }
+
+    suspend fun addOffloadOrDspSeconds(isOffload: Boolean, deltaSeconds: Long) {
+        if (deltaSeconds <= 0L) return
+        context.dataStore.edit { prefs ->
+            if (isOffload) {
+                prefs[Keys.OFFLOAD_SECONDS_ACCUM] = (prefs[Keys.OFFLOAD_SECONDS_ACCUM] ?: 0L) + deltaSeconds
+            } else {
+                prefs[Keys.DSP_SECONDS_ACCUM] = (prefs[Keys.DSP_SECONDS_ACCUM] ?: 0L) + deltaSeconds
+            }
         }
     }
 
@@ -200,7 +287,12 @@ class SynFixPreferences(private val context: Context) {
         beatSyncedMorphEnabled = prefs[Keys.BEAT_SYNCED_MORPH] ?: true,
         proceduralArtFallback = prefs[Keys.PROCEDURAL_ART_FALLBACK] ?: true,
         floatingBubbleEnabled = prefs[Keys.FLOATING_BUBBLE_ENABLED] ?: false,
-        subBassHapticsEnabled = prefs[Keys.SUB_BASS_HAPTICS_ENABLED] ?: false
+        subBassHapticsEnabled = prefs[Keys.SUB_BASS_HAPTICS_ENABLED] ?: false,
+        gyroParallaxEnabled = prefs[Keys.GYRO_PARALLAX] ?: true,
+        shakeToSkipEnabled = prefs[Keys.SHAKE_TO_SKIP] ?: false,
+        partyStrobeEnabled = prefs[Keys.PARTY_STROBE] ?: false,
+        partyStrobeTorchEnabled = prefs[Keys.PARTY_STROBE_TORCH] ?: false,
+        customVibeChipsCsv = prefs[Keys.CUSTOM_VIBE_CHIPS] ?: "Gym,Coche,Focus,Chill"
     )
 
     private fun parsePlayback(prefs: Preferences) = PlaybackSettings(
@@ -220,7 +312,14 @@ class SynFixPreferences(private val context: Context) {
             ?: FocusFilterBand.NONE,
         lofiTapeEnabled = prefs[Keys.LOFI_TAPE_ENABLED] ?: false,
         slowedReverbEnabled = prefs[Keys.SLOWED_REVERB_ENABLED] ?: false,
-        adaptiveAmbientEnabled = prefs[Keys.ADAPTIVE_AMBIENT_ENABLED] ?: false
+        adaptiveAmbientEnabled = prefs[Keys.ADAPTIVE_AMBIENT_ENABLED] ?: false,
+        audio8dEnabled = prefs[Keys.AUDIO_8D_ENABLED] ?: false,
+        audio8dSpeed = prefs[Keys.AUDIO_8D_SPEED] ?: 1.0f,
+        harmonicExciterLevel = prefs[Keys.HARMONIC_EXCITER] ?: 0f,
+        semitoneShift = prefs[Keys.SEMITONE_SHIFT] ?: 0,
+        earSafeLimiterEnabled = prefs[Keys.EAR_SAFE_LIMITER] ?: true,
+        drClippingGuardEnabled = prefs[Keys.DR_CLIPPING_GUARD] ?: false,
+        turntableBrakeEnabled = prefs[Keys.TURNTABLE_BRAKE] ?: false
     )
 
     private fun defaultExcludedFolders(): Set<String> = setOf(

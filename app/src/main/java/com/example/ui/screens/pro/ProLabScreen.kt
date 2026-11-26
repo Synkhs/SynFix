@@ -45,6 +45,13 @@ fun ProLabScreen(
     val hiddenSongs by viewModel.hiddenSongs.collectAsStateWithLifecycle()
     val partySyncState by viewModel.partySyncState.collectAsStateWithLifecycle()
     val wakeUpState by viewModel.wakeUpAlarmState.collectAsStateWithLifecycle()
+    val pocketDjState by viewModel.pocketDjState.collectAsStateWithLifecycle()
+    val blindTestState by viewModel.blindTestState.collectAsStateWithLifecycle()
+    val artistChainPool by viewModel.artistChainPool.collectAsStateWithLifecycle()
+    val trophies by viewModel.trophies.collectAsStateWithLifecycle()
+    val junkCandidates by viewModel.junkCleanupCandidates.collectAsStateWithLifecycle()
+    val qrServerState by viewModel.qrServerState.collectAsStateWithLifecycle()
+    val dspBatteryStats by viewModel.dspBatteryStats.collectAsStateWithLifecycle()
 
     var showMoodRadar by remember { mutableStateOf(false) }
     var showPreviewSwiper by remember { mutableStateOf(false) }
@@ -60,6 +67,21 @@ fun ProLabScreen(
     var showAliasCleaner by remember { mutableStateOf(false) }
     var showHiddenVault by remember { mutableStateOf(false) }
     var showM3u8Relinker by remember { mutableStateOf(false) }
+    // Phase 8 Dialog States
+    var showPocketDj by remember { mutableStateOf(false) }
+    var showLyricGap by remember { mutableStateOf(false) }
+    var showTapBeatArcade by remember { mutableStateOf(false) }
+    var showTrackBracket by remember { mutableStateOf(false) }
+    var showMusicBingo by remember { mutableStateOf(false) }
+    var showDropReflex by remember { mutableStateOf(false) }
+    var showArtistChain by remember { mutableStateOf(false) }
+    var showChaosDice by remember { mutableStateOf(false) }
+    var showTrophyCabinet by remember { mutableStateOf(false) }
+    var showTapTempo by remember { mutableStateOf(false) }
+    var showJunkStripper by remember { mutableStateOf(false) }
+    var showBlindTest by remember { mutableStateOf(false) }
+    var showQrServer by remember { mutableStateOf(false) }
+    var showBackupAndStats by remember { mutableStateOf(false) }
 
     val activeSong: Song? = playerState.currentSong ?: libraryState.songs.firstOrNull()
     val cal = remember { Calendar.getInstance() }
@@ -73,7 +95,7 @@ fun ProLabScreen(
                     Column {
                         Text("SynFix Lab Ultra")
                         Text(
-                            text = "Fase 6 Pro + Fase 7 Ultra • 100% Local",
+                            text = "Fase 6 Pro + Fase 7 Ultra + Expansión #43–#85",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -199,6 +221,101 @@ fun ProLabScreen(
                 rightIcon = Icons.Filled.Link,
                 rightTag = "open_m3u8_relinker",
                 onRightClick = { showM3u8Relinker = true }
+            )
+
+            Text("Pocket DJ & Suite de Minijuegos (#44–#68)", style = MaterialTheme.typography.titleMedium)
+
+            ProActionRow(
+                leftTitle = "Pocket DJ 2-Deck",
+                leftSub = "Crossfade & Mashup",
+                leftIcon = Icons.Filled.Tune,
+                leftTag = "open_pocket_dj",
+                onLeftClick = { showPocketDj = true },
+                rightTitle = "Lyric Gap",
+                rightSub = "Completa la letra",
+                rightIcon = Icons.Filled.Spellcheck,
+                rightTag = "open_lyric_gap",
+                onRightClick = { showLyricGap = true }
+            )
+
+            ProActionRow(
+                leftTitle = "Tap-the-Beat",
+                leftSub = "Arcade 120 FPS",
+                leftIcon = Icons.Filled.TouchApp,
+                leftTag = "open_tap_beat",
+                onLeftClick = { showTapBeatArcade = true },
+                rightTitle = "Track Bracket 1v1",
+                rightSub = "Torneo local",
+                rightIcon = Icons.Filled.EmojiEvents,
+                rightTag = "open_track_bracket",
+                onRightClick = { showTrackBracket = true }
+            )
+
+            ProActionRow(
+                leftTitle = "Music Bingo",
+                leftSub = "Cartón 3×3 offline",
+                leftIcon = Icons.Filled.GridOn,
+                leftTag = "open_music_bingo",
+                onLeftClick = { showMusicBingo = true },
+                rightTitle = "Drop Reflex",
+                rightSub = "Reflejos al drop",
+                rightIcon = Icons.Filled.Bolt,
+                rightTag = "open_drop_reflex",
+                onRightClick = { showDropReflex = true }
+            )
+
+            ProActionRow(
+                leftTitle = "Artist Link Chain",
+                leftSub = "Cadena feats",
+                leftIcon = Icons.Filled.Hub,
+                leftTag = "open_artist_chain",
+                onLeftClick = { showArtistChain = true },
+                rightTitle = "Chaos Dice 3D",
+                rightSub = "Dado de mezclas",
+                rightIcon = Icons.Filled.Casino,
+                rightTag = "open_chaos_dice",
+                onRightClick = { showChaosDice = true }
+            )
+
+            ProActionRow(
+                leftTitle = "Vitrina Trofeos",
+                leftSub = "${trophies.count { it.unlocked }}/${trophies.size} logros",
+                leftIcon = Icons.Filled.MilitaryTech,
+                leftTag = "open_trophies",
+                onLeftClick = { showTrophyCabinet = true },
+                rightTitle = "Tap-Tempo BPM",
+                rightSub = "Detector al pulso",
+                rightIcon = Icons.Filled.Speed,
+                rightTag = "open_tap_tempo",
+                onRightClick = { showTapTempo = true }
+            )
+
+            Text("Superpoderes de Sistema (#76–#85)", style = MaterialTheme.typography.titleMedium)
+
+            ProActionRow(
+                leftTitle = "Junk Tag Stripper",
+                leftSub = "Limpiar URLs/Tags",
+                leftIcon = Icons.Filled.AutoFixHigh,
+                leftTag = "open_junk_stripper",
+                onLeftClick = { showJunkStripper = true },
+                rightTitle = "Blind Test A/B",
+                rightSub = "FLAC vs MP3",
+                rightIcon = Icons.Filled.Compare,
+                rightTag = "open_blind_test",
+                onRightClick = { showBlindTest = true }
+            )
+
+            ProActionRow(
+                leftTitle = "Servidor QR Wi-Fi",
+                leftSub = if (qrServerState.isRunning) "Puerto ${qrServerState.port}" else "Subir sin cables",
+                leftIcon = Icons.Filled.QrCode2,
+                leftTag = "open_qr_server",
+                onLeftClick = { showQrServer = true },
+                rightTitle = "Backup & Eficiencia",
+                rightSub = "${dspBatteryStats.offloadPercentage}% Offload",
+                rightIcon = Icons.Filled.BatteryChargingFull,
+                rightTag = "open_backup_stats",
+                onRightClick = { showBackupAndStats = true }
             )
 
             // #13 Zero-Play Streak (Daily 3 never-played gems)
@@ -461,6 +578,166 @@ fun ProLabScreen(
             onImportM3u8 = viewModel::importM3u8Playlist,
             onExportM3u8 = viewModel::exportSongsToM3u8,
             onDismiss = { showM3u8Relinker = false }
+        )
+    }
+
+    // Phase 8 Dialogs (#44, #55, #61-#68, #70, #76, #77, #80, #81, #85)
+    if (showPocketDj) {
+        PocketDjAndMashupDialog(
+            songs = libraryState.songs,
+            djState = pocketDjState,
+            onLoadDeckA = viewModel::pocketDjLoadA,
+            onLoadDeckB = viewModel::pocketDjLoadB,
+            onToggleDeckA = viewModel::pocketDjToggleA,
+            onToggleDeckB = viewModel::pocketDjToggleB,
+            onSeekDeckA = viewModel::pocketDjSeekA,
+            onSeekDeckB = viewModel::pocketDjSeekB,
+            onCrossfadeChange = viewModel::pocketDjCrossfade,
+            onToggleMashup = viewModel::pocketDjMashup,
+            onToggleSyncBpm = viewModel::pocketDjSyncBpm,
+            onDismiss = {
+                viewModel.releasePocketDj()
+                showPocketDj = false
+            }
+        )
+    }
+
+    if (showLyricGap) {
+        LyricGapGameDialog(
+            songs = libraryState.songs,
+            onPlaySong = { song ->
+                viewModel.playSongFromList(song, libraryState.songs)
+                showLyricGap = false
+                onOpenNowPlaying()
+            },
+            onDismiss = { showLyricGap = false }
+        )
+    }
+
+    if (showTapBeatArcade) {
+        TapBeatArcadeDialog(
+            currentSong = activeSong,
+            positionMsProvider = { positionMs },
+            onEnsureAnalyzed = viewModel::ensureSongEnergyAnalyzed,
+            onPlaySong = { song -> viewModel.playSongFromList(song, libraryState.songs) },
+            onDismiss = { showTapBeatArcade = false }
+        )
+    }
+
+    if (showTrackBracket) {
+        TrackBracketDialog(
+            songs = libraryState.songs,
+            onPlaySong = { song -> viewModel.playSongFromList(song, libraryState.songs) },
+            onCreateChampionPlaylist = { champ ->
+                viewModel.createPlaylist("Campeona: ${champ.title.take(18)}")
+                viewModel.toggleFavorite(champ)
+            },
+            onDismiss = { showTrackBracket = false }
+        )
+    }
+
+    if (showMusicBingo) {
+        MusicBingoDialog(
+            songs = libraryState.songs,
+            currentSong = playerState.currentSong,
+            onPlayRandom = { viewModel.elasticShufflePlay() },
+            onDismiss = { showMusicBingo = false }
+        )
+    }
+
+    if (showDropReflex) {
+        DropReflexDialog(
+            songs = libraryState.songs,
+            onEnsureAnalyzed = viewModel::ensureSongEnergyAnalyzed,
+            onSeekAndPlay = { song, posMs ->
+                viewModel.playSongFromList(song, libraryState.songs)
+                viewModel.seekTo(posMs)
+            },
+            onDismiss = { showDropReflex = false }
+        )
+    }
+
+    if (showArtistChain) {
+        ArtistLinkChainDialog(
+            songs = libraryState.songs,
+            candidates = artistChainPool,
+            onFindNext = viewModel::loadArtistChainCandidates,
+            onPlaySong = { song -> viewModel.playSongFromList(song, libraryState.songs) },
+            onDismiss = { showArtistChain = false }
+        )
+    }
+
+    if (showChaosDice) {
+        ChaosDice3dDialog(
+            songs = libraryState.songs,
+            onPlayMix = { first, list ->
+                viewModel.playSongFromList(first, list)
+                showChaosDice = false
+                onOpenNowPlaying()
+            },
+            onDismiss = { showChaosDice = false }
+        )
+    }
+
+    if (showTrophyCabinet) {
+        TrophyCabinetDialog(
+            trophies = trophies,
+            onRefresh = viewModel::refreshTrophies,
+            onDismiss = { showTrophyCabinet = false }
+        )
+    }
+
+    if (showTapTempo) {
+        TapTempoFinderDialog(
+            songs = libraryState.songs,
+            onPlaySong = { song, list ->
+                viewModel.playSongFromList(song, list)
+                showTapTempo = false
+                onOpenNowPlaying()
+            },
+            onDismiss = { showTapTempo = false }
+        )
+    }
+
+    if (showJunkStripper) {
+        JunkTagStripperDialog(
+            candidates = junkCandidates,
+            onScan = viewModel::scanJunkTagCandidates,
+            onApplyBulkCleanup = viewModel::applyBulkJunkTagCleanup,
+            onDismiss = { showJunkStripper = false }
+        )
+    }
+
+    if (showBlindTest) {
+        BlindTestAbDialog(
+            songs = libraryState.songs,
+            state = blindTestState,
+            onStartTest = viewModel::startBlindTest,
+            onSwitchSlot = viewModel::switchBlindTestSlot,
+            onTogglePlay = viewModel::toggleBlindTestPlayPause,
+            onSubmitGuess = viewModel::submitBlindTestGuess,
+            onDismiss = {
+                viewModel.releaseBlindTest()
+                showBlindTest = false
+            }
+        )
+    }
+
+    if (showQrServer) {
+        LocalQrWebServerDialog(
+            state = qrServerState,
+            onStartServer = viewModel::startQrWebServer,
+            onStopServer = viewModel::stopQrWebServer,
+            onDismiss = { showQrServer = false }
+        )
+    }
+
+    if (showBackupAndStats) {
+        BackupAndEfficiencyDialog(
+            stats = dspBatteryStats,
+            onExportBackup = viewModel::exportSynFixBackup,
+            onImportBackup = viewModel::importSynFixBackup,
+            onDismiss = { showBackupAndStats = false }
         )
     }
 }

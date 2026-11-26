@@ -14,9 +14,12 @@ import androidx.room.RoomDatabase
         TrackNoteEntity::class,
         ListeningHistoryEntity::class,
         WrappedSummaryEntity::class,
-        ArtistStatsEntity::class
+        ArtistStatsEntity::class,
+        TrophyEntity::class,
+        BluetoothMacProfileEntity::class,
+        TrackCollaborationEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MusicDatabase : RoomDatabase() {
@@ -33,6 +36,7 @@ abstract class MusicDatabase : RoomDatabase() {
                     MusicDatabase::class.java,
                     "synfix_music_db"
                 )
+                    .setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance

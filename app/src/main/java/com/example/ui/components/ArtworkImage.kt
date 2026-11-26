@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.AsyncImagePainter
+import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import coil3.size.Size
@@ -68,9 +69,16 @@ fun ArtworkImage(
     var imageFailed by remember(artworkUri) { mutableStateOf(artworkUri == null) }
 
     val request = remember(artworkUri, targetPx) {
+        val isLocalUri = artworkUri == null ||
+            artworkUri.scheme == null ||
+            artworkUri.scheme == "content" ||
+            artworkUri.scheme == "file" ||
+            artworkUri.scheme == "android.resource"
         ImageRequest.Builder(context)
             .data(artworkUri)
             .size(Size(targetPx, targetPx))
+            .memoryCachePolicy(CachePolicy.ENABLED)
+            .diskCachePolicy(if (isLocalUri) CachePolicy.DISABLED else CachePolicy.ENABLED)
             .crossfade(220)
             .build()
     }

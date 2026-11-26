@@ -3,6 +3,7 @@ package com.example.ui.screens.player
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -20,13 +21,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,15 +49,21 @@ import com.example.ui.screens.pro.SessionCardExportDialog
 import com.example.ui.screens.pro.TrackNotesSheet
 import com.example.ui.theme.ExpressiveTypography
 import com.example.ui.theme.MorphPolygonShape
+import com.example.ui.theme.StateMorphPolygonShape
 import com.example.ui.theme.SynFixMotion
 import com.example.ui.theme.SynFixPolygons
 import com.example.ui.viewmodel.MusicViewModel
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.delay
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
+import kotlin.math.roundToInt
 
 @Composable
 fun NowPlayingScreen(
@@ -70,6 +84,10 @@ fun NowPlayingScreen(
     val albumSeedColor by viewModel.albumSeedColor.collectAsStateWithLifecycle()
     val abLoopState by viewModel.abLoopState.collectAsStateWithLifecycle()
     val telemetry by viewModel.pipelineTelemetry.collectAsStateWithLifecycle()
+    val gyroTiltX by viewModel.gyroTiltX.collectAsStateWithLifecycle()
+    val gyroTiltY by viewModel.gyroTiltY.collectAsStateWithLifecycle()
+    val partyStrobePulse by viewModel.partyStrobePulse.collectAsStateWithLifecycle()
+    val pinnedQueueIds by viewModel.pinnedQueueIds.collectAsStateWithLifecycle()
 
     val song = playerState.currentSong
     val context = LocalContext.current
@@ -92,9 +110,19 @@ fun NowPlayingScreen(
     var showLyricsEditor by remember { mutableStateOf(false) }
     var showNotesSheet by remember { mutableStateOf(false) }
     var showZeroLookMode by remember { mutableStateOf(false) }
+    var showDeskClockMode by remember { mutableStateOf(false) }
     var showSessionCardDialog by remember { mutableStateOf(false) }
     var isScrubbing by remember { mutableStateOf(false) }
     var scrubFraction by remember { mutableFloatStateOf(0f) }
+
+    // #46 Edge Liquid Volume Pill state
+    var isAdjustingVolume by remember { mutableStateOf(false) }
+    var volumeFraction by remember { mutableFloatStateOf(0.5f) }
+    val volumePillAlpha by animateFloatAsState(
+        targetValue = if (isAdjustingVolume) 1f else 0f,
+        animationSpec = SynFixMotion.effectsSpring(),
+        label = "volumePillAlpha"
+    )
 
     var dismissDragY by remember { mutableFloatStateOf(0f) }
     val animatedDismissY by animateFloatAsState(
@@ -109,6 +137,7 @@ fun NowPlayingScreen(
         if (trackNotes.isEmpty()) persistentListOf()
         else trackNotes.map { (it.timestampMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) }.toImmutableList()
     }
+    val energyHeatmap = song?.energyHeatmap ?: persistentListOf()
 
     val currentAccent = albumSeedColor ?: MaterialTheme.colorScheme.primary
     val prevAccent = prevSong?.artworkUri?.let { PaletteExtractor.getCachedSeedColor(it) } ?: MaterialTheme.colorScheme.tertiary
@@ -123,6 +152,18 @@ fun NowPlayingScreen(
             onPrevious = viewModel::skipPrevious,
             onBookmarkNote = { viewModel.addTrackNote(positionMs, "Marcador rápido") },
             onExit = { showZeroLookMode = false }
+        )
+        return
+    }
+
+    if (showDeskClockMode) {
+        AmoledDeskClockOverlay(
+            song = song,
+            isPlaying = playerState.isPlaying,
+            progressProvider = { (effectivePosMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) },
+            onTogglePlayPause = viewModel::togglePlayPause,
+            onNext = viewModel::skipNext,
+            onExit = { showDeskClockMode = false }
         )
         return
     }
@@ -159,15 +200,18 @@ fun NowPlayingScreen(
                     sleepTimerActive = sleepTimer.isActive,
                     notesCount = trackNotes.size,
                     noteFractions = noteFractions,
+                    energyHeatmap = energyHeatmap,
                     abLoopState = abLoopState,
                     telemetry = telemetry,
                     beatSyncedMorphEnabled = appearance.beatSyncedMorphEnabled,
+                    gyroParallaxEnabled = appearance.gyroParallaxEnabled,
                     useProceduralFallback = appearance.proceduralArtFallback,
                     currentAccent = currentAccent,
                     prevAccent = prevAccent,
                     nextAccent = nextAccent,
                     beatEnergyProvider = { subBassEnergy },
                     rmsProvider = { rmsAmplitude },
+                    gyroTiltProvider = { gyroTiltX to gyroTiltY },
                     progressProvider = { (effectivePosMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) },
                     positionMsProvider = { effectivePosMs },
                     durationMs = durationMs,
@@ -198,6 +242,7 @@ fun NowPlayingScreen(
                     onOpenEqualizer = onOpenEqualizer,
                     onOpenNotes = { showNotesSheet = true },
                     onOpenZeroLook = { showZeroLookMode = true },
+                    onOpenDeskClock = { showDeskClockMode = true },
                     onShareCard = { showSessionCardDialog = true },
                     onEditTags = { song?.let(onEditTags) }
                 )
@@ -214,6 +259,7 @@ fun NowPlayingScreen(
                     sleepTimerActive = sleepTimer.isActive,
                     notesCount = trackNotes.size,
                     noteFractions = noteFractions,
+                    energyHeatmap = energyHeatmap,
                     abLoopState = abLoopState,
                     telemetry = telemetry,
                     useProceduralFallback = appearance.proceduralArtFallback,
@@ -251,6 +297,7 @@ fun NowPlayingScreen(
                     onOpenEqualizer = onOpenEqualizer,
                     onOpenNotes = { showNotesSheet = true },
                     onOpenZeroLook = { showZeroLookMode = true },
+                    onOpenDeskClock = { showDeskClockMode = true },
                     onShareCard = { showSessionCardDialog = true },
                     onEditTags = { song?.let(onEditTags) }
                 )
@@ -266,10 +313,13 @@ fun NowPlayingScreen(
                     sleepTimerActive = sleepTimer.isActive,
                     notesCount = trackNotes.size,
                     noteFractions = noteFractions,
+                    energyHeatmap = energyHeatmap,
                     abLoopState = abLoopState,
                     telemetry = telemetry,
+                    gyroParallaxEnabled = appearance.gyroParallaxEnabled,
                     useProceduralFallback = appearance.proceduralArtFallback,
                     rmsProvider = { rmsAmplitude },
+                    gyroTiltProvider = { gyroTiltX to gyroTiltY },
                     progressProvider = { (effectivePosMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) },
                     positionMsProvider = { effectivePosMs },
                     durationMs = durationMs,
@@ -301,9 +351,78 @@ fun NowPlayingScreen(
                     onOpenEqualizer = onOpenEqualizer,
                     onOpenNotes = { showNotesSheet = true },
                     onOpenZeroLook = { showZeroLookMode = true },
+                    onOpenDeskClock = { showDeskClockMode = true },
                     onShareCard = { showSessionCardDialog = true },
                     onEditTags = { song?.let(onEditTags) }
                 )
+            }
+        }
+
+        // #49 Beat-Sync Party Strobe screen-edge reactive glow (draw-phase only)
+        if (appearance.partyStrobeEnabled && playerState.isPlaying) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        val pulse = partyStrobePulse.coerceIn(0f, 1f)
+                        if (pulse > 0.04f) {
+                            drawRoundRect(
+                                color = currentAccent.copy(alpha = pulse * 0.58f),
+                                cornerRadius = CornerRadius(24.dp.toPx(), 24.dp.toPx()),
+                                style = Stroke(width = (6.dp.toPx() + pulse * 10.dp.toPx()))
+                            )
+                        }
+                    }
+            )
+        }
+
+        // #46 Edge Liquid Volume Pill (right-edge vertical drag)
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(34.dp)
+                .fillMaxHeight(0.54f)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = {
+                            volumeFraction = viewModel.getMusicVolumeFraction()
+                            isAdjustingVolume = true
+                        },
+                        onDragEnd = { isAdjustingVolume = false },
+                        onDragCancel = { isAdjustingVolume = false },
+                        onVerticalDrag = { change, dragAmount ->
+                            change.consume()
+                            val delta = -dragAmount / size.height.toFloat().coerceAtLeast(1f)
+                            volumeFraction = (volumeFraction + delta).coerceIn(0f, 1f)
+                            viewModel.setMusicVolumeFraction(volumeFraction)
+                        }
+                    )
+                },
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            if (volumePillAlpha > 0.02f) {
+                val trackBg = MaterialTheme.colorScheme.surfaceContainerHighest
+                val fillCol = MaterialTheme.colorScheme.primary
+                Canvas(
+                    modifier = Modifier
+                        .padding(end = 10.dp)
+                        .width(14.dp)
+                        .fillMaxHeight(0.75f)
+                        .graphicsLayer { alpha = volumePillAlpha }
+                ) {
+                    val corner = size.width / 2f
+                    drawRoundRect(
+                        color = trackBg.copy(alpha = 0.85f),
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                    val fillHeight = size.height * volumeFraction
+                    drawRoundRect(
+                        color = fillCol,
+                        topLeft = Offset(0f, size.height - fillHeight),
+                        size = Size(size.width, fillHeight),
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                }
             }
         }
     }
@@ -312,6 +431,7 @@ fun NowPlayingScreen(
         SleepTimerSheet(
             state = sleepTimer,
             onStartTimer = viewModel::startSleepTimer,
+            onStartTrackTimer = viewModel::startTrackSleepTimer,
             onCancelTimer = viewModel::cancelSleepTimer,
             onDismiss = { showSleepTimerSheet = false }
         )
@@ -321,6 +441,9 @@ fun NowPlayingScreen(
         QueueBottomSheet(
             queue = playerState.queue,
             currentIndex = playerState.currentIndex,
+            pinnedIds = pinnedQueueIds,
+            onTogglePin = viewModel::togglePinQueueSong,
+            onSmartShufflePreservingPins = viewModel::smartShuffleQueuePreservingPins,
             onJumpToIndex = viewModel::jumpToQueueIndex,
             onRemoveIndex = viewModel::removeFromQueue,
             onDismiss = { showQueueSheet = false }
@@ -374,15 +497,18 @@ private fun ExpressiveClassicNowPlaying(
     sleepTimerActive: Boolean,
     notesCount: Int,
     noteFractions: ImmutableList<Float>,
+    energyHeatmap: ImmutableList<Float>,
     abLoopState: AbLoopState,
     telemetry: AudioPipelineTelemetry,
     beatSyncedMorphEnabled: Boolean,
+    gyroParallaxEnabled: Boolean,
     useProceduralFallback: Boolean,
     currentAccent: Color,
     prevAccent: Color,
     nextAccent: Color,
     beatEnergyProvider: () -> Float,
     rmsProvider: () -> Float,
+    gyroTiltProvider: () -> Pair<Float, Float>,
     progressProvider: () -> Float,
     positionMsProvider: () -> Long,
     durationMs: Long,
@@ -407,42 +533,48 @@ private fun ExpressiveClassicNowPlaying(
     onOpenEqualizer: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenZeroLook: () -> Unit,
+    onOpenDeskClock: () -> Unit,
     onShareCard: () -> Unit,
     onEditTags: () -> Unit
 ) {
     val morph = remember { Morph(SynFixPolygons.squircle(), SynFixPolygons.clover()) }
-    val baseMorphProgress by animateFloatAsState(
+    val baseMorphState = animateFloatAsState(
         targetValue = if (isPlaying) 0.55f else 0f,
         animationSpec = SynFixMotion.slowSpatialSpring(),
         label = "artMorph"
     )
-    val subBass = if (beatSyncedMorphEnabled && isPlaying) beatEnergyProvider() else 0f
-    val dynamicMorphProgress = (baseMorphProgress + subBass * 0.45f).coerceIn(0f, 1f)
-    val artShape = remember(dynamicMorphProgress) { MorphPolygonShape(morph, dynamicMorphProgress) }
+    val artShape = remember(beatSyncedMorphEnabled, isPlaying) {
+        StateMorphPolygonShape(morph) {
+            val subBass = if (beatSyncedMorphEnabled && isPlaying) beatEnergyProvider() else 0f
+            (baseMorphState.value + subBass * 0.45f).coerceIn(0f, 1f)
+        }
+    }
 
     var swipeX by remember { mutableFloatStateOf(0f) }
-    val animatedSwipeX by animateFloatAsState(swipeX, SynFixMotion.fastSpatialSpring(), label = "artSwipeX")
-
-    // #5 Liquid Color Drag Transition via real-time lerp() across cached 64x64 px palettes
-    val dragFraction = (abs(animatedSwipeX) / 200f).coerceIn(0f, 1f)
-    val targetSwipeColor = if (animatedSwipeX < 0f) nextAccent else prevAccent
-    val liquidColor = lerp(currentAccent, targetSwipeColor, dragFraction)
+    val animatedSwipeXState = animateFloatAsState(swipeX, SynFixMotion.fastSpatialSpring(), label = "artSwipeX")
+    val bgBase = MaterialTheme.colorScheme.background
 
     Surface(
-        color = MaterialTheme.colorScheme.background,
+        color = bgBase,
         contentColor = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.fillMaxSize()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to liquidColor.copy(alpha = 0.22f + dragFraction * 0.16f),
-                        0.55f to MaterialTheme.colorScheme.background.copy(alpha = 0.92f),
-                        1f to MaterialTheme.colorScheme.background
+                .drawBehind {
+                    val sx = animatedSwipeXState.value
+                    val dragFraction = (abs(sx) / 200f).coerceIn(0f, 1f)
+                    val targetSwipeColor = if (sx < 0f) nextAccent else prevAccent
+                    val liquidColor = lerp(currentAccent, targetSwipeColor, dragFraction)
+                    drawRect(
+                        Brush.verticalGradient(
+                            0f to liquidColor.copy(alpha = 0.22f + dragFraction * 0.16f),
+                            0.55f to bgBase.copy(alpha = 0.92f),
+                            1f to bgBase
+                        )
                     )
-                )
+                }
         ) {
             Column(
                 modifier = Modifier
@@ -457,6 +589,7 @@ private fun ExpressiveClassicNowPlaying(
                     onBack = onBack,
                     onCycleStyle = onCycleStyle,
                     onOpenZeroLook = onOpenZeroLook,
+                    onOpenDeskClock = onOpenDeskClock,
                     onShareCard = onShareCard,
                     onEditTags = onEditTags
                 )
@@ -482,8 +615,17 @@ private fun ExpressiveClassicNowPlaying(
                                     .fillMaxWidth(0.84f)
                                     .aspectRatio(1f)
                                     .graphicsLayer {
-                                        translationX = animatedSwipeX
-                                        rotationZ = (animatedSwipeX / 28f).coerceIn(-7f, 7f)
+                                        val sx = animatedSwipeXState.value
+                                        translationX = sx
+                                        rotationZ = (sx / 28f).coerceIn(-7f, 7f)
+                                        if (gyroParallaxEnabled) {
+                                            val (tx, ty) = gyroTiltProvider()
+                                            rotationY = tx * 8f
+                                            rotationX = -ty * 8f
+                                            translationX += tx * 10.dp.toPx()
+                                            translationY = ty * 10.dp.toPx()
+                                            cameraDistance = 14f * density
+                                        }
                                     }
                                     .pointerInput(song?.id) {
                                         detectHorizontalDragGestures(
@@ -567,6 +709,7 @@ private fun ExpressiveClassicNowPlaying(
                     isPlaying = isPlaying,
                     rmsProvider = rmsProvider,
                     noteFractions = noteFractions,
+                    energyHeatmap = energyHeatmap,
                     onSeekProgress = onSeekFraction,
                     onScrubbingChanged = onScrubbingChanged
                 )
@@ -628,6 +771,7 @@ private fun ImmersiveFullBleedNowPlaying(
     sleepTimerActive: Boolean,
     notesCount: Int,
     noteFractions: ImmutableList<Float>,
+    energyHeatmap: ImmutableList<Float>,
     abLoopState: AbLoopState,
     telemetry: AudioPipelineTelemetry,
     useProceduralFallback: Boolean,
@@ -659,13 +803,13 @@ private fun ImmersiveFullBleedNowPlaying(
     onOpenEqualizer: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenZeroLook: () -> Unit,
+    onOpenDeskClock: () -> Unit,
     onShareCard: () -> Unit,
     onEditTags: () -> Unit
 ) {
     val bgBase = MaterialTheme.colorScheme.surface
     var swipeX by remember { mutableFloatStateOf(0f) }
-    val dragFrac = (abs(swipeX) / 200f).coerceIn(0f, 1f)
-    val liquidAccent = lerp(currentAccent, if (swipeX < 0f) nextAccent else prevAccent, dragFrac)
+    val animatedSwipeXState = animateFloatAsState(swipeX, SynFixMotion.fastSpatialSpring(), label = "fullBleedSwipeX")
 
     Surface(
         color = bgBase,
@@ -706,14 +850,19 @@ private fun ImmersiveFullBleedNowPlaying(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to bgBase.copy(alpha = 0.65f),
-                            0.38f to liquidAccent.copy(alpha = 0.28f + dragFrac * 0.22f),
-                            0.68f to bgBase.copy(alpha = 0.88f),
-                            1f to bgBase.copy(alpha = 0.98f)
+                    .drawBehind {
+                        val sx = animatedSwipeXState.value
+                        val dragFrac = (abs(sx) / 200f).coerceIn(0f, 1f)
+                        val liquidAccent = lerp(currentAccent, if (sx < 0f) nextAccent else prevAccent, dragFrac)
+                        drawRect(
+                            Brush.verticalGradient(
+                                0f to bgBase.copy(alpha = 0.65f),
+                                0.38f to liquidAccent.copy(alpha = 0.28f + dragFrac * 0.22f),
+                                0.68f to bgBase.copy(alpha = 0.88f),
+                                1f to bgBase.copy(alpha = 0.98f)
+                            )
                         )
-                    )
+                    }
             )
 
             Column(
@@ -729,6 +878,7 @@ private fun ImmersiveFullBleedNowPlaying(
                     onBack = onBack,
                     onCycleStyle = onCycleStyle,
                     onOpenZeroLook = onOpenZeroLook,
+                    onOpenDeskClock = onOpenDeskClock,
                     onShareCard = onShareCard,
                     onEditTags = onEditTags
                 )
@@ -803,6 +953,7 @@ private fun ImmersiveFullBleedNowPlaying(
                             isPlaying = isPlaying,
                             rmsProvider = rmsProvider,
                             noteFractions = noteFractions,
+                            energyHeatmap = energyHeatmap,
                             onSeekProgress = onSeekFraction,
                             onScrubbingChanged = onScrubbingChanged
                         )
@@ -865,10 +1016,13 @@ private fun VinylMinimalNowPlaying(
     sleepTimerActive: Boolean,
     notesCount: Int,
     noteFractions: ImmutableList<Float>,
+    energyHeatmap: ImmutableList<Float>,
     abLoopState: AbLoopState,
     telemetry: AudioPipelineTelemetry,
+    gyroParallaxEnabled: Boolean,
     useProceduralFallback: Boolean,
     rmsProvider: () -> Float,
+    gyroTiltProvider: () -> Pair<Float, Float>,
     progressProvider: () -> Float,
     positionMsProvider: () -> Long,
     durationMs: Long,
@@ -894,6 +1048,7 @@ private fun VinylMinimalNowPlaying(
     onOpenEqualizer: () -> Unit,
     onOpenNotes: () -> Unit,
     onOpenZeroLook: () -> Unit,
+    onOpenDeskClock: () -> Unit,
     onShareCard: () -> Unit,
     onEditTags: () -> Unit
 ) {
@@ -939,6 +1094,7 @@ private fun VinylMinimalNowPlaying(
                 onBack = onBack,
                 onCycleStyle = onCycleStyle,
                 onOpenZeroLook = onOpenZeroLook,
+                onOpenDeskClock = onOpenDeskClock,
                 onShareCard = onShareCard,
                 onEditTags = onEditTags
             )
@@ -998,7 +1154,15 @@ private fun VinylMinimalNowPlaying(
                     modifier = Modifier
                         .fillMaxSize()
                         .synFixSharedElement("shared_now_playing_art")
-                        .graphicsLayer { rotationZ = vinylAngle }
+                        .graphicsLayer {
+                            rotationZ = vinylAngle
+                            if (gyroParallaxEnabled) {
+                                val (tx, ty) = gyroTiltProvider()
+                                rotationY = tx * 6f
+                                rotationX = -ty * 6f
+                                cameraDistance = 14f * density
+                            }
+                        }
                         .clip(CircleShape)
                         .background(Color(0xFF14141A))
                         .border(4.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
@@ -1065,6 +1229,7 @@ private fun VinylMinimalNowPlaying(
                 isPlaying = isPlaying,
                 rmsProvider = rmsProvider,
                 noteFractions = noteFractions,
+                energyHeatmap = energyHeatmap,
                 onSeekProgress = onSeekFraction,
                 onScrubbingChanged = onScrubbingChanged
             )
@@ -1219,6 +1384,7 @@ private fun NowPlayingTopBar(
     onBack: () -> Unit,
     onCycleStyle: () -> Unit,
     onOpenZeroLook: () -> Unit,
+    onOpenDeskClock: () -> Unit,
     onShareCard: () -> Unit,
     onEditTags: () -> Unit
 ) {
@@ -1242,6 +1408,9 @@ private fun NowPlayingTopBar(
         }
 
         Row {
+            IconButton(onClick = onOpenDeskClock, modifier = Modifier.testTag("desk_clock_button")) {
+                Icon(Icons.Filled.AccessTime, contentDescription = "Modo Reloj AMOLED")
+            }
             IconButton(onClick = onOpenZeroLook, modifier = Modifier.testTag("zero_look_button")) {
                 Icon(Icons.Filled.VisibilityOff, contentDescription = "Modo Ciego Zero-Look")
             }
@@ -1376,6 +1545,116 @@ private fun NowPlayingQuickActionsRow(
 
         IconButton(onClick = onOpenQueue) {
             Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Cola")
+        }
+    }
+}
+
+/**
+ * #84 Anti-Burn-In AMOLED Desk Clock Mode:
+ * Pure #000000 OLED canvas with zero continuous animations and a 2.dp spatial pixel shift every 60 seconds.
+ */
+@Composable
+private fun AmoledDeskClockOverlay(
+    song: Song?,
+    isPlaying: Boolean,
+    progressProvider: () -> Float,
+    onTogglePlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onExit: () -> Unit
+) {
+    BackHandler(onBack = onExit)
+
+    var clockText by remember { mutableStateOf("00:00") }
+    var shiftIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+        while (true) {
+            clockText = formatter.format(Date())
+            shiftIndex = (shiftIndex + 1) % 4
+            delay(60_000L)
+        }
+    }
+
+    val dimmedInk = Color(0xFFD6D4E0).copy(alpha = 0.78f)
+    val subtleInk = Color(0xFF8C8A98).copy(alpha = 0.65f)
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(24.dp)
+            .graphicsLayer {
+                val shiftPx = 2.dp.toPx()
+                translationX = if (shiftIndex % 2 == 0) shiftPx else -shiftPx
+                translationY = if (shiftIndex < 2) shiftPx else -shiftPx
+            }
+    ) {
+        IconButton(
+            onClick = onExit,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .testTag("desk_clock_exit")
+        ) {
+            Icon(Icons.Filled.Close, contentDescription = "Salir de Reloj AMOLED", tint = subtleInk)
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = clockText,
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.Light,
+                color = dimmedInk
+            )
+            Text(
+                text = song?.title ?: "SynFix • Modo Escritorio",
+                style = MaterialTheme.typography.titleMedium,
+                color = dimmedInk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = song?.artist ?: "OLED Anti-Burn-In activo",
+                style = MaterialTheme.typography.bodySmall,
+                color = subtleInk,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            MiniProgressBar(
+                progressProvider = progressProvider,
+                color = dimmedInk,
+                trackColor = subtleInk.copy(alpha = 0.25f),
+                modifier = Modifier.fillMaxWidth(0.65f)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onTogglePlayPause) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                        tint = dimmedInk,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                IconButton(onClick = onNext) {
+                    Icon(
+                        imageVector = Icons.Filled.SkipNext,
+                        contentDescription = "Siguiente",
+                        tint = dimmedInk,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            }
         }
     }
 }

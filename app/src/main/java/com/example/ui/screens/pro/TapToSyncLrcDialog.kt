@@ -16,6 +16,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.domain.model.Song
 import com.example.ui.components.formatDuration
 import com.example.ui.theme.ExpressiveTypography
+import kotlinx.collections.immutable.toImmutableList
 
 /**
  * #38 Tap-to-Sync LRC Maker:
@@ -39,7 +40,7 @@ fun TapToSyncLrcDialog(
     }
     var syncingMode by remember { mutableStateOf(false) }
     var activeIndex by remember { mutableIntStateOf(0) }
-    val lines = remember(rawText) { rawText.lines().map { it.trim() }.filter { it.isNotEmpty() } }
+    val lines = remember(rawText) { rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }.toImmutableList() }
     val timestamps = remember(song.id, lines.size) { mutableStateListOf<Long?>().apply { repeat(lines.size) { add(null) } } }
 
     fun formatLrcTag(ms: Long): String {
@@ -114,7 +115,11 @@ fun TapToSyncLrcDialog(
                             .height(200.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        itemsIndexed(lines) { idx, line ->
+                        itemsIndexed(
+                            items = lines,
+                            key = { idx, _ -> idx },
+                            contentType = { _, _ -> "sync_lrc_line" }
+                        ) { idx, line ->
                             val isCurrent = idx == activeIndex
                             val stamped = timestamps.getOrNull(idx)
                             Surface(

@@ -75,6 +75,26 @@ class MorphPolygonShape(
     }
 }
 
+class StateMorphPolygonShape(
+    private val morph: Morph,
+    private val progressProvider: () -> Float
+) : Shape {
+    private val matrix = Matrix()
+
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density
+    ): Outline {
+        matrix.reset()
+        matrix.scale(size.width / 2f, size.height / 2f)
+        matrix.translate(1f, 1f)
+        val path = morph.toPath(progress = progressProvider().coerceIn(0f, 1f)).asComposePath()
+        path.transform(matrix)
+        return Outline.Generic(path)
+    }
+}
+
 class PolygonShape(
     private val polygon: RoundedPolygon,
     private val rotationDegrees: Float = 0f

@@ -38,7 +38,12 @@ data class Song(
     val sampleRateHz: Int = 44100,
     val camelotKey: String = "8A",
     val isHidden: Boolean = false,
-    val artistAlias: String? = null
+    val artistAlias: String? = null,
+    val vibeTags: String = "",
+    val lastPositionMs: Long = 0L,
+    val energyHeatmap: ImmutableList<Float> = persistentListOf(),
+    val peakTimestampsMs: ImmutableList<Int> = persistentListOf(),
+    val dropTimestampMs: Long = 0L
 ) {
     val contentUri: Uri
         get() = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)

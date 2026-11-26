@@ -40,6 +40,14 @@ import com.example.ui.theme.SeedColorPresets
 import com.example.ui.viewmodel.MusicViewModel
 import kotlin.math.roundToInt
 
+@Composable
+fun SettingsScreen(
+    viewModel: MusicViewModel,
+    onBack: () -> Unit
+) {
+    AppearanceSettingsScreen(viewModel = viewModel, onBack = onBack)
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AppearanceSettingsScreen(
@@ -68,7 +76,7 @@ fun AppearanceSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Apariencia & Biblioteca") },
+                title = { Text("Ajustes y Apariencia") },
                 navigationIcon = {
                     IconButton(onClick = onBack, modifier = Modifier.testTag("settings_back_button")) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -352,6 +360,100 @@ fun AppearanceSettingsScreen(
                             }
                         }
                     )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                // #45 Shake-to-Skip
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Shake-to-Skip", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Agita el teléfono con pantalla encendida para saltar de pista",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = appearance.shakeToSkipEnabled,
+                        onCheckedChange = { enabled ->
+                            viewModel.updateAppearance { it.copy(shakeToSkipEnabled = enabled) }
+                        }
+                    )
+                }
+
+                // #47 Gyro Parallax Depth Art
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Gyro Parallax Depth Art (≤30 Hz)", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Efecto 3D en carátula controlado por giroscopio solo en primer plano",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = appearance.gyroParallaxEnabled,
+                        onCheckedChange = { enabled ->
+                            viewModel.updateAppearance { it.copy(gyroParallaxEnabled = enabled) }
+                        }
+                    )
+                }
+
+                // #49 Beat-Sync Party Strobe + Hardware Torch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Estrobo Party Beat-Sync", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Borde luminoso al ritmo de subgraves en Ahora Suena",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = appearance.partyStrobeEnabled,
+                        onCheckedChange = { enabled ->
+                            viewModel.updateAppearance { it.copy(partyStrobeEnabled = enabled) }
+                            if (enabled && !hasRecordAudioPerm) {
+                                recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        }
+                    )
+                }
+
+                if (appearance.partyStrobeEnabled) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Flash LED de Cámara (≤12 Hz)", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Sincroniza la linterna trasera con el ritmo (se apaga al minimizar)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = appearance.partyStrobeTorchEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updateAppearance { it.copy(partyStrobeTorchEnabled = enabled) }
+                            }
+                        )
+                    }
                 }
             }
 

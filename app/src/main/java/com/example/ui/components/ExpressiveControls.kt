@@ -31,7 +31,7 @@ import androidx.graphics.shapes.Morph
 import com.example.domain.model.ArtworkShapeStyle
 import com.example.domain.model.LibraryTab
 import com.example.domain.model.Song
-import com.example.ui.theme.MorphPolygonShape
+import com.example.ui.theme.StateMorphPolygonShape
 import com.example.ui.theme.SynFixMotion
 import com.example.ui.theme.SynFixPolygons
 import kotlin.math.abs
@@ -54,7 +54,7 @@ fun ShapeShiftingPlayButton(
     val morph = remember {
         Morph(SynFixPolygons.squircle(), SynFixPolygons.clover())
     }
-    val progress by animateFloatAsState(
+    val progressState = animateFloatAsState(
         targetValue = if (isPlaying) 1f else 0f,
         animationSpec = SynFixMotion.spatialSpring(),
         label = "playShapeMorph"
@@ -63,17 +63,17 @@ fun ShapeShiftingPlayButton(
     var targetMagnetX by remember { mutableFloatStateOf(0f) }
     var targetMagnetY by remember { mutableFloatStateOf(0f) }
 
-    val magnetX by animateFloatAsState(
+    val magnetXState = animateFloatAsState(
         targetValue = targetMagnetX,
         animationSpec = SynFixMotion.fastSpatialSpring(),
         label = "magnetX"
     )
-    val magnetY by animateFloatAsState(
+    val magnetYState = animateFloatAsState(
         targetValue = targetMagnetY,
         animationSpec = SynFixMotion.fastSpatialSpring(),
         label = "magnetY"
     )
-    val scale by animateFloatAsState(
+    val scaleState = animateFloatAsState(
         targetValue = when {
             isPressed -> 0.94f
             isPlaying -> 1.05f
@@ -83,8 +83,8 @@ fun ShapeShiftingPlayButton(
         label = "playScale"
     )
 
-    val dynamicShape = remember(progress) {
-        MorphPolygonShape(morph, progress)
+    val dynamicShape = remember {
+        StateMorphPolygonShape(morph) { progressState.value }
     }
     val haptics = LocalHapticFeedback.current
     val maxPullPx = with(LocalDensity.current) { 14.dp.toPx() }
@@ -132,10 +132,10 @@ fun ShapeShiftingPlayButton(
                 }
             }
             .graphicsLayer {
-                translationX = magnetX
-                translationY = magnetY
-                scaleX = scale
-                scaleY = scale
+                translationX = magnetXState.value
+                translationY = magnetYState.value
+                scaleX = scaleState.value
+                scaleY = scaleState.value
             }
             .testTag("play_pause_button")
     ) {
@@ -150,101 +150,66 @@ fun ShapeShiftingPlayButton(
 }
 
 /**
- * M3 Expressive HorizontalFloatingToolbar for primary library navigation with auto-hide on scroll.
+ * M3 Expressive HorizontalFloatingToolbar for primary library navigation (always visible & clickable).
  */
 @Composable
-fun SynFixFloatingToolbar(
-    visible: Boolean,
+fun HorizontalFloatingToolbar(
     selectedTab: LibraryTab,
     onSelectTab: (LibraryTab) -> Unit,
-    onOpenEqualizer: () -> Unit,
-    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(
-            animationSpec = SynFixMotion.SpatialIntOffsetSpring,
-            initialOffsetY = { it * 2 }
-        ) + fadeIn(SynFixMotion.effectsSpring()),
-        exit = slideOutVertically(
-            animationSpec = SynFixMotion.SpatialIntOffsetSpring,
-            targetOffsetY = { it * 2 }
-        ) + fadeOut(SynFixMotion.effectsSpring()),
+    Surface(
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 8.dp,
+        shadowElevation = 10.dp,
         modifier = modifier
+            .padding(horizontal = 12.dp)
+            .testTag("horizontal_floating_toolbar")
     ) {
-        Surface(
-            shape = RoundedCornerShape(32.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 8.dp,
-            shadowElevation = 10.dp,
-            modifier = Modifier
-                .padding(horizontal = 12.dp)
-                .navigationBarsPadding()
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                LibraryTab.entries.forEach { tab ->
-                    val selected = tab == selectedTab
-                    val cornerRadius by animateDpAsState(
-                        targetValue = if (selected) 24.dp else 14.dp,
-                        animationSpec = SynFixMotion.fastSpatialSpring(),
-                        label = "tabRadius"
-                    )
-                    val icon = when (tab) {
-                        LibraryTab.SONGS -> if (selected) Icons.Filled.MusicNote else Icons.Outlined.MusicNote
-                        LibraryTab.ALBUMS -> if (selected) Icons.Filled.Album else Icons.Outlined.Album
-                        LibraryTab.ARTISTS -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
-                        LibraryTab.PLAYLISTS -> Icons.AutoMirrored.Filled.QueueMusic
-                    }
+            LibraryTab.entries.forEach { tab ->
+                val selected = tab == selectedTab
+                val cornerRadius by animateDpAsState(
+                    targetValue = if (selected) 24.dp else 14.dp,
+                    animationSpec = SynFixMotion.fastSpatialSpring(),
+                    label = "tabRadius"
+                )
+                val icon = when (tab) {
+                    LibraryTab.SONGS -> if (selected) Icons.Filled.MusicNote else Icons.Outlined.MusicNote
+                    LibraryTab.ALBUMS -> if (selected) Icons.Filled.Album else Icons.Outlined.Album
+                    LibraryTab.ARTISTS -> if (selected) Icons.Filled.Person else Icons.Outlined.Person
+                    LibraryTab.PLAYLISTS -> Icons.AutoMirrored.Filled.QueueMusic
+                }
 
-                    Surface(
-                        onClick = { onSelectTab(tab) },
-                        shape = RoundedCornerShape(cornerRadius),
-                        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .height(48.dp)
-                            .testTag("tab_${tab.name.lowercase()}")
+                Surface(
+                    onClick = { onSelectTab(tab) },
+                    shape = RoundedCornerShape(cornerRadius),
+                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("tab_${tab.name.lowercase()}")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = if (selected) 14.dp else 12.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = if (selected) 12.dp else 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(icon, contentDescription = tab.label, modifier = Modifier.size(20.dp))
-                            AnimatedVisibility(visible = selected) {
-                                Text(
-                                    text = tab.label,
-                                    style = MaterialTheme.typography.labelLarge,
-                                    maxLines = 1
-                                )
-                            }
+                        Icon(icon, contentDescription = tab.label, modifier = Modifier.size(20.dp))
+                        AnimatedVisibility(visible = selected) {
+                            Text(
+                                text = tab.label,
+                                style = MaterialTheme.typography.labelLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                         }
                     }
-                }
-
-                VerticalDivider(
-                    modifier = Modifier
-                        .height(24.dp)
-                        .padding(horizontal = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                IconButton(
-                    onClick = onOpenEqualizer,
-                    modifier = Modifier.testTag("toolbar_equalizer_button")
-                ) {
-                    Icon(Icons.Filled.GraphicEq, contentDescription = "Ecualizador")
-                }
-                IconButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier.testTag("toolbar_settings_button")
-                ) {
-                    Icon(Icons.Outlined.Palette, contentDescription = "Apariencia")
                 }
             }
         }
@@ -273,12 +238,12 @@ fun ExpandableMiniPlayer(
 ) {
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
     var dragOffsetX by remember { mutableFloatStateOf(0f) }
-    val animatedOffsetY by animateFloatAsState(
+    val animatedOffsetYState = animateFloatAsState(
         targetValue = dragOffsetY,
         animationSpec = SynFixMotion.fastSpatialSpring(),
         label = "miniDragY"
     )
-    val animatedOffsetX by animateFloatAsState(
+    val animatedOffsetXState = animateFloatAsState(
         targetValue = dragOffsetX,
         animationSpec = SynFixMotion.fastSpatialSpring(),
         label = "miniDragX"
@@ -296,8 +261,8 @@ fun ExpandableMiniPlayer(
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .graphicsLayer {
-                translationY = animatedOffsetY.coerceIn(-120f, 20f)
-                translationX = animatedOffsetX.coerceIn(-140f, 140f)
+                translationY = animatedOffsetYState.value.coerceIn(-120f, 20f)
+                translationX = animatedOffsetXState.value.coerceIn(-140f, 140f)
             }
             .pointerInput(song.id) {
                 detectVerticalDragGestures(

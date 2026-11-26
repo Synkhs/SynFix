@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSharedTransitionApi::class)
+@file:OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 
 package com.example.ui.screens
 
@@ -8,13 +8,26 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.LookaheadScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -22,18 +35,20 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.R
 import com.example.domain.model.Song
 import com.example.ui.components.ExpandableMiniPlayer
 import com.example.ui.components.FloatingMiniBubble
+import com.example.ui.components.HorizontalFloatingToolbar
 import com.example.ui.components.LocalAnimatedVisibilityScope
 import com.example.ui.components.LocalSharedTransitionScope
-import com.example.ui.components.SynFixFloatingToolbar
 import com.example.ui.screens.equalizer.EqualizerScreen
 import com.example.ui.screens.library.LibraryScreen
 import com.example.ui.screens.player.NowPlayingScreen
 import com.example.ui.screens.pro.ProLabScreen
-import com.example.ui.screens.settings.AppearanceSettingsScreen
+import com.example.ui.screens.settings.SettingsScreen
 import com.example.ui.screens.tags.TagEditorDialog
+import com.example.ui.theme.ExpressiveTypography
 import com.example.ui.theme.SynFixMotion
 import com.example.ui.viewmodel.MusicViewModel
 import kotlinx.serialization.Serializable
@@ -48,7 +63,7 @@ object NowPlayingRoute
 object EqualizerRoute
 
 @Serializable
-object AppearanceRoute
+object SettingsRoute
 
 @Serializable
 object ProLabRoute
@@ -65,7 +80,6 @@ fun MainScreen(viewModel: MusicViewModel) {
     val positionMs by viewModel.playbackPositionMs.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    var toolbarVisible by remember { mutableStateOf(true) }
     var editingSongTags by remember { mutableStateOf<Song?>(null) }
 
     val context = LocalContext.current
@@ -113,6 +127,7 @@ fun MainScreen(viewModel: MusicViewModel) {
     }
 
     val isNowPlayingDestination = currentRoute?.contains("NowPlayingRoute") == true
+    val showNormalMiniPlayer = playerState.currentSong != null && !appearance.floatingBubbleEnabled
 
     // #26 Shared Element Liquid Morphing via SharedTransitionLayout + LookaheadScope
     SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
@@ -137,50 +152,62 @@ fun MainScreen(viewModel: MusicViewModel) {
                     ) {
                         composable<LibraryRoute> {
                             CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
-                                Box(modifier = Modifier.fillMaxSize()) {
+                                Scaffold(
+                                    modifier = Modifier.fillMaxSize(),
+                                    containerColor = MaterialTheme.colorScheme.background,
+                                    contentWindowInsets = WindowInsets(0, 0, 0, 0),
+                                    topBar = {
+                                        SynFixMainTopAppBar(
+                                            songCount = libraryState.songs.size,
+                                            isScanning = libraryState.isScanning,
+                                            onOpenProLab = { navController.navigate(ProLabRoute) },
+                                            onOpenEqualizer = { navController.navigate(EqualizerRoute) },
+                                            onScanMusic = { viewModel.scanMusic() },
+                                            onOpenSettings = { navController.navigate(SettingsRoute) }
+                                        )
+                                    },
+                                    bottomBar = {
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .navigationBarsPadding()
+                                                .padding(bottom = 8.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (showNormalMiniPlayer) {
+                                                playerState.currentSong?.let { song ->
+                                                    ExpandableMiniPlayer(
+                                                        song = song,
+                                                        isPlaying = playerState.isPlaying,
+                                                        artworkShapeStyle = appearance.artworkShape,
+                                                        useProceduralFallback = appearance.proceduralArtFallback,
+                                                        positionProvider = { positionMs },
+                                                        durationMs = playerState.durationMs,
+                                                        onExpand = { navController.navigate(NowPlayingRoute) },
+                                                        onTogglePlayPause = viewModel::togglePlayPause,
+                                                        onNext = viewModel::skipNext,
+                                                        onPrevious = viewModel::skipPrevious
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalFloatingToolbar(
+                                                selectedTab = libraryState.selectedTab,
+                                                onSelectTab = viewModel::setSelectedTab
+                                            )
+                                        }
+                                    }
+                                ) { innerPadding ->
                                     LibraryScreen(
                                         viewModel = viewModel,
-                                        hasMiniPlayer = playerState.currentSong != null && !appearance.floatingBubbleEnabled,
-                                        onToolbarVisibilityChange = { visible -> toolbarVisible = visible },
+                                        hasMiniPlayer = showNormalMiniPlayer,
                                         onEditTags = { song -> editingSongTags = song },
                                         onOpenNowPlaying = { navController.navigate(NowPlayingRoute) },
-                                        onOpenProLab = { navController.navigate(ProLabRoute) }
-                                    )
-
-                                    Column(
                                         modifier = Modifier
-                                            .align(Alignment.BottomCenter)
-                                            .fillMaxWidth()
-                                            .padding(bottom = 10.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        if (!appearance.floatingBubbleEnabled) {
-                                            playerState.currentSong?.let { song ->
-                                                ExpandableMiniPlayer(
-                                                    song = song,
-                                                    isPlaying = playerState.isPlaying,
-                                                    artworkShapeStyle = appearance.artworkShape,
-                                                    useProceduralFallback = appearance.proceduralArtFallback,
-                                                    positionProvider = { positionMs },
-                                                    durationMs = playerState.durationMs,
-                                                    onExpand = { navController.navigate(NowPlayingRoute) },
-                                                    onTogglePlayPause = viewModel::togglePlayPause,
-                                                    onNext = viewModel::skipNext,
-                                                    onPrevious = viewModel::skipPrevious,
-                                                    modifier = if (!toolbarVisible) Modifier.navigationBarsPadding() else Modifier
-                                                )
-                                            }
-                                        }
-
-                                        SynFixFloatingToolbar(
-                                            visible = toolbarVisible,
-                                            selectedTab = libraryState.selectedTab,
-                                            onSelectTab = viewModel::setSelectedTab,
-                                            onOpenEqualizer = { navController.navigate(EqualizerRoute) },
-                                            onOpenSettings = { navController.navigate(AppearanceRoute) }
-                                        )
-                                    }
+                                            .fillMaxSize()
+                                            .padding(top = innerPadding.calculateTopPadding())
+                                    )
                                 }
                             }
                         }
@@ -205,9 +232,9 @@ fun MainScreen(viewModel: MusicViewModel) {
                             }
                         }
 
-                        composable<AppearanceRoute> {
+                        composable<SettingsRoute> {
                             CompositionLocalProvider(LocalAnimatedVisibilityScope provides this) {
-                                AppearanceSettingsScreen(
+                                SettingsScreen(
                                     viewModel = viewModel,
                                     onBack = { navController.popBackStack() }
                                 )
@@ -261,4 +288,100 @@ fun MainScreen(viewModel: MusicViewModel) {
             }
         )
     }
+}
+
+@Composable
+private fun SynFixMainTopAppBar(
+    songCount: Int,
+    isScanning: Boolean,
+    onOpenProLab: () -> Unit,
+    onOpenEqualizer: () -> Unit,
+    onScanMusic: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    TopAppBar(
+        modifier = Modifier.statusBarsPadding(),
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            titleContentColor = MaterialTheme.colorScheme.onBackground,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurface
+        ),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.inverseSurface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.synfix_logo_foreground),
+                        contentDescription = "Logotipo de SynFix",
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.inverseOnSurface),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    Text(
+                        text = "SynFix",
+                        style = ExpressiveTypography.SectionHeaderEmphasized,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "$songCount pistas locales",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        },
+        actions = {
+            IconButton(
+                onClick = onOpenProLab,
+                modifier = Modifier
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    .testTag("open_pro_lab_button")
+            ) {
+                Icon(Icons.Rounded.AutoAwesome, contentDescription = "SynFix Lab Pro")
+            }
+            IconButton(
+                onClick = onOpenEqualizer,
+                modifier = Modifier
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    .testTag("toolbar_equalizer_button")
+            ) {
+                Icon(Icons.Rounded.GraphicEq, contentDescription = "Ecualizador")
+            }
+            IconButton(
+                onClick = onScanMusic,
+                modifier = Modifier
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    .testTag("scan_music_button")
+            ) {
+                if (isScanning) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Escanear biblioteca")
+                }
+            }
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+                    .testTag("settings_button")
+            ) {
+                Icon(Icons.Rounded.Settings, contentDescription = "Ajustes")
+            }
+        }
+    )
 }

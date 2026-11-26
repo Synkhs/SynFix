@@ -93,6 +93,8 @@ dependencies {
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.datastore.preferences)
+  implementation(libs.androidx.glance.appwidget)
+  implementation(libs.androidx.glance.material3)
   implementation(libs.androidx.graphics.shapes)
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -113,6 +115,7 @@ dependencies {
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.zxing.core)
   // Unused template dependencies commented out for smaller APK size
   // implementation(libs.converter.moshi)
   // implementation(libs.firebase.ai)
