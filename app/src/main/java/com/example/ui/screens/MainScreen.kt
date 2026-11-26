@@ -35,6 +35,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.BuildConfig
 import com.example.R
 import com.example.domain.model.Song
 import com.example.ui.components.ExpandableMiniPlayer
@@ -328,13 +329,32 @@ private fun SynFixMainTopAppBar(
                     )
                 }
                 Column(modifier = Modifier.weight(1f, fill = false)) {
-                    Text(
-                        text = "SynFix",
-                        style = ExpressiveTypography.SectionHeaderEmphasized,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "SynFix",
+                            style = ExpressiveTypography.SectionHeaderEmphasized,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.testTag("app_version_badge")
+                        ) {
+                            Text(
+                                text = "v${BuildConfig.VERSION_NAME}",
+                                style = ExpressiveTypography.MonoTimecode,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
                     Text(
                         text = "$songCount pistas locales",
                         style = MaterialTheme.typography.bodySmall,
